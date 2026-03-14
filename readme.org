@@ -8,6 +8,33 @@ This package aims:
   - Changing hook or some function advice/hook by Projab's function
 
 
+* Install
+This package does not join ELPA/MELPA. So you can:
+
+- install package.el via VC integration (recommendation)
+- use straight.el, elpaca.el, or such a similar package
+- Download projab.el and put it to your =load-path= .
+
+
+* Configuration
+** Setup
+
+#+begin_src emacs-lisp
+  ;; Avoid accidentally rollback layouts.
+  (setopt desktop-restore-frames nil)
+
+  (require 'projab)
+  ;; Enable global minor mode.
+  (projab-mode +1)
+#+end_src
+** Customize
+
+| Variable                      | Type      | Default             | Description                                                                 |
+|-------------------------------+-----------+---------------------+-----------------------------------------------------------------------------|
+| =projab-sessions-directory=   | directory | =~/.emacs.d/projab= | Directory where per-project sessions are stored.                            |
+| =projab-auto-restore-session= | boolean   | =t=                 | If non-nil, automatically restore a project's session when opening its tab. |
+| =projab-auto-save-on-exit=    | boolean   | =t=                 | If non-nil, automatically save all project sessions before Emacs exits.     |
+
 * Development
 
 - Need =Taskfile= to execute task.

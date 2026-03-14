@@ -122,20 +122,28 @@ Return the tab index or nil."
 ;;;###autoload
 (defun projab-list-buffers ()
   "Return a list of buffers belonging to the current tab's project.
+Includes buffers whose files are under the project root, and extra
+buffers explicitly associated with this tab via `:projab-extra-buffers'.
 Returns nil if the current tab has no associated project."
   (let ((root (projab-project-root)))
     (when root
-      (let ((expanded-root (expand-file-name root)))
-        (cl-remove-if-not
-         (lambda (buf)
-           (let ((file (buffer-file-name buf))
-                 (dir (buffer-local-value 'default-directory buf)))
-             (or (and file
-                      (string-prefix-p
-                       expanded-root (expand-file-name file)))
-                 (string-prefix-p
-                  expanded-root (expand-file-name dir)))))
-         (buffer-list))))))
+      (let* ((expanded-root (expand-file-name root))
+             (extra (projab--tab-parameter :projab-extra-buffers))
+             (project-bufs
+              (cl-remove-if-not
+               (lambda (buf)
+                 (let ((file (buffer-file-name buf))
+                       (dir
+                        (buffer-local-value 'default-directory buf)))
+                   (or (and file
+                            (string-prefix-p
+                             expanded-root (expand-file-name file)))
+                       (string-prefix-p
+                        expanded-root (expand-file-name dir)))))
+               (buffer-list))))
+        (cl-remove-duplicates
+         (append
+          project-bufs (cl-remove-if-not #'buffer-live-p extra)))))))
 
 ;;;###autoload
 (defun projab-switch-buffer ()
@@ -231,6 +239,40 @@ With prefix argument, skip saving."
         (projab--save-project-session root))
       (tab-bar-close-tab))))
 
+;;; Extra-buffer hooks
+
+(defun projab--find-file-hook ()
+  "Track buffers opened outside the current tab's project as extra buffers.
+When a file is visited in a project tab and its path does not fall under
+the project root, add the buffer to the tab's `:projab-extra-buffers' list."
+  (let ((root (projab-project-root)))
+    (when root
+      (let* ((expanded-root (expand-file-name root))
+             (file (buffer-file-name))
+             (in-project
+              (or (and file
+                       (string-prefix-p
+                        expanded-root (expand-file-name file)))
+                  (string-prefix-p
+                   expanded-root
+                   (expand-file-name default-directory)))))
+        (unless in-project
+          (let ((extra (projab--tab-parameter :projab-extra-buffers)))
+            (unless (memq (current-buffer) extra)
+              (projab--set-tab-parameter
+               :projab-extra-buffers
+               (cons (current-buffer) extra)))))))))
+
+(defun projab--kill-buffer-hook ()
+  "Remove the buffer being killed from all tabs' `:projab-extra-buffers'."
+  (let ((buf (current-buffer))
+        (tabs (funcall tab-bar-tabs-function)))
+    (dolist (tab tabs)
+      (let* ((extra (map-elt (cdr tab) :projab-extra-buffers))
+             (pruned (delq buf extra)))
+        (when (and extra (not (eq pruned extra)))
+          (map-put! (cdr tab) :projab-extra-buffers pruned))))))
+
 ;;; Minor mode
 
 (defun projab--kill-emacs-hook ()
@@ -249,8 +291,12 @@ When enabled, project tab sessions are automatically saved on exit."
   (if projab-mode
       (progn
         (tab-bar-mode 1)
-        (add-hook 'kill-emacs-hook #'projab--kill-emacs-hook))
-    (remove-hook 'kill-emacs-hook #'projab--kill-emacs-hook)))
+        (add-hook 'kill-emacs-hook #'projab--kill-emacs-hook)
+        (add-hook 'find-file-hook #'projab--find-file-hook)
+        (add-hook 'kill-buffer-hook #'projab--kill-buffer-hook))
+    (remove-hook 'kill-emacs-hook #'projab--kill-emacs-hook)
+    (remove-hook 'find-file-hook #'projab--find-file-hook)
+    (remove-hook 'kill-buffer-hook #'projab--kill-buffer-hook)))
 
 (provide 'projab)
 ;;; projab.el ends here

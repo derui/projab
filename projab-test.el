@@ -100,5 +100,44 @@
       (kill-buffer buf-out)
       (delete-directory root t))))
 
+;;; projab--save-project-session
+
+(ert-deftest projab-test-save-session-calls-desktop-save ()
+  "projab--save-project-session calls desktop-save with the session directory."
+  (let* ((root "/home/user/myproject/")
+         (projab-sessions-directory (make-temp-file "projab-test" t))
+         (saved-dir nil))
+    (unwind-protect
+        (progn
+          (cl-letf (((symbol-function 'desktop-save)
+                     (lambda (dir &rest _) (setq saved-dir dir))))
+            (projab--save-project-session root))
+          (should (string-equal saved-dir
+                                (expand-file-name (md5 root)
+                                                  projab-sessions-directory))))
+      (delete-directory projab-sessions-directory t))))
+
+;;; projab--restore-project-session
+
+(ert-deftest projab-test-restore-session-returns-t-when-file-exists ()
+  "projab--restore-project-session returns t when a desktop file exists."
+  (let* ((root "/home/user/myproject/")
+         (projab-sessions-directory (make-temp-file "projab-test" t))
+         (session-dir (projab--session-dir root)))
+    (unwind-protect
+        (progn
+          (write-region "" nil (expand-file-name "desktop" session-dir))
+          (cl-letf (((symbol-function 'desktop-read) #'ignore))
+            (should (eq t (projab--restore-project-session root)))))
+      (delete-directory projab-sessions-directory t))))
+
+(ert-deftest projab-test-restore-session-returns-nil-when-no-file ()
+  "projab--restore-project-session returns nil when no desktop file exists."
+  (let* ((root "/home/user/myproject/")
+         (projab-sessions-directory (make-temp-file "projab-test" t)))
+    (unwind-protect
+        (should (null (projab--restore-project-session root)))
+      (delete-directory projab-sessions-directory t))))
+
 (provide 'projab-test)
 ;;; projab-test.el ends here

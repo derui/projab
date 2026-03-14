@@ -166,6 +166,38 @@ Returns nil if the current tab has no associated project."
   (when-let* ((buf (get-buffer buffer-or-name)))
     (not (null (memq buf (projab-list-buffers))))))
 
+(defun projab--project-remove-buffer (buffer)
+  "Remove `BUFFER' from current project.
+
+When the `BUFFER' is in the project, keep showing it unless removed."
+  (let ((root (projab-project-root)))
+    (when root
+      (let* ((extra (projab--tab-parameter :projab-extra-buffers))
+             (pruned (delq (get-buffer buffer) extra)))
+        (when (not (eq pruned extra))
+          (projab--set-tab-parameter
+           :projab-extra-buffers pruned))))))
+
+;;;###autoload
+(defun projab-project-remove-current-buffer ()
+  "Remove the current buffer from the current project's extra buffer list."
+  (interactive)
+  (projab--project-remove-buffer (current-buffer)))
+
+;;;###autoload
+(defun projab-project-remove-selected-buffer (&optional buffer)
+  "Remove BUFFER from the current project's extra buffer list.
+When called interactively, prompt to select a buffer from the project list."
+  (interactive)
+  (projab--project-remove-buffer
+   (if (called-interactively-p 'any)
+       (when-let* ((bufs (projab-list-buffers)))
+         (get-buffer
+          (completing-read
+           "Remove buffer: " (mapcar #'buffer-name bufs)
+           nil t)))
+     buffer)))
+
 ;;;###autoload
 (defun projab-switch-buffer ()
   "Switch to a buffer belonging to the current tab's project.
@@ -223,7 +255,7 @@ Returns t if a session was restored, nil otherwise."
 ;;; Switch project
 
 (defvar-local projab--switch-project-root nil
-  "temporary root while switching root")
+  "Temporary root while switching root.")
 
 (defun projab--store-new-root ()
   "Stores new root from `project-current' to `projab--switch-project-root'."

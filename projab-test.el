@@ -411,5 +411,89 @@
       ;; Only "alpha" should be offered; "scratch" has no project root
       (should (equal '("alpha") offered)))))
 
+;;; projab-project-remove-current-buffer
+
+(ert-deftest projab-test-remove-current-buffer-removes-from-extra ()
+  "projab-project-remove-current-buffer removes the current buffer from :projab-extra-buffers."
+  (let* ((buf (get-buffer-create " *projab-test-remove-current*"))
+         (set-key nil)
+         (set-val nil))
+    (unwind-protect
+        (with-current-buffer buf
+          (cl-letf (((symbol-function 'projab-project-root)
+                     (lambda () "/myproject/"))
+                    ((symbol-function 'projab--tab-parameter)
+                     (lambda (key &optional _tab)
+                       (when (eq key :projab-extra-buffers)
+                         (list buf))))
+                    ((symbol-function 'projab--set-tab-parameter)
+                     (lambda (key val)
+                       (setq set-key key set-val val))))
+            (projab-project-remove-current-buffer)
+            (should (eq set-key :projab-extra-buffers))
+            (should (not (memq buf set-val)))))
+      (kill-buffer buf))))
+
+(ert-deftest projab-test-remove-current-buffer-noop-when-no-project ()
+  "projab-project-remove-current-buffer does nothing when there is no project."
+  (let ((set-called nil))
+    (cl-letf (((symbol-function 'projab-project-root) (lambda () nil))
+              ((symbol-function 'projab--set-tab-parameter)
+               (lambda (&rest _) (setq set-called t))))
+      (projab-project-remove-current-buffer)
+      (should (null set-called)))))
+
+;;; projab-project-remove-selected-buffer
+
+(ert-deftest projab-test-remove-selected-buffer-with-argument ()
+  "projab-project-remove-selected-buffer removes the given buffer from :projab-extra-buffers."
+  (let* ((buf (get-buffer-create " *projab-test-remove-sel*"))
+         (set-key nil)
+         (set-val nil))
+    (unwind-protect
+        (cl-letf (((symbol-function 'projab-project-root)
+                   (lambda () "/myproject/"))
+                  ((symbol-function 'projab--tab-parameter)
+                   (lambda (key &optional _tab)
+                     (when (eq key :projab-extra-buffers)
+                       (list buf))))
+                  ((symbol-function 'projab--set-tab-parameter)
+                   (lambda (key val)
+                     (setq set-key key set-val val))))
+          (projab-project-remove-selected-buffer buf)
+          (should (eq set-key :projab-extra-buffers))
+          (should (not (memq buf set-val))))
+      (kill-buffer buf))))
+
+(ert-deftest projab-test-remove-selected-buffer-interactive ()
+  "projab-project-remove-selected-buffer prompts and removes the chosen buffer."
+  (let* ((buf (get-buffer-create " *projab-test-remove-sel2*"))
+         (set-val nil))
+    (unwind-protect
+        (cl-letf (((symbol-function 'projab-project-root)
+                   (lambda () "/myproject/"))
+                  ((symbol-function 'projab-list-buffers)
+                   (lambda () (list buf)))
+                  ((symbol-function 'completing-read)
+                   (lambda (_prompt _choices &rest _) (buffer-name buf)))
+                  ((symbol-function 'projab--tab-parameter)
+                   (lambda (key &optional _tab)
+                     (when (eq key :projab-extra-buffers)
+                       (list buf))))
+                  ((symbol-function 'projab--set-tab-parameter)
+                   (lambda (_key val) (setq set-val val))))
+          (call-interactively #'projab-project-remove-selected-buffer)
+          (should (not (memq buf set-val))))
+      (kill-buffer buf))))
+
+(ert-deftest projab-test-remove-selected-buffer-noop-when-no-project ()
+  "projab-project-remove-selected-buffer does nothing when there is no project."
+  (let ((set-called nil))
+    (cl-letf (((symbol-function 'projab-project-root) (lambda () nil))
+              ((symbol-function 'projab--set-tab-parameter)
+               (lambda (&rest _) (setq set-called t))))
+      (projab-project-remove-selected-buffer (get-buffer-create " *projab-dummy*"))
+      (should (null set-called)))))
+
 (provide 'projab-test)
 ;;; projab-test.el ends here

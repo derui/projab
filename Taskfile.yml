@@ -1,0 +1,21 @@
+version: "3"
+
+vars:
+  EMACS: emacs
+  EL: projab.el
+
+tasks:
+  compile:
+    desc: Byte-compile projab.el
+    cmds:
+      - "{{.EMACS}} --batch -f batch-byte-compile {{.EL}}"
+      - rm -f "{{.EL}}c"
+
+  checkdoc:
+    desc: Run checkdoc on projab.el
+    cmds:
+      - "{{.EMACS}} --batch --eval '(checkdoc-file \"{{.EL}}\")'"
+
+  lint:
+    desc: Run all checks (compile + checkdoc)
+    deps: [compile, checkdoc]

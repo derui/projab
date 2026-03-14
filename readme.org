@@ -1,17 +1,17 @@
 * Projab - Project by tab
 Projab manages project from =project.el= with =tab-bar= and =desktop.el= .
 
-This package aims:
+This package aims to provide:
 
-- Depends only *standard package* of Emacs. It comes really good maintainability
+- Depends only *standard package* of Emacs. It provides really good maintainability
   - Do not add other-package related function, such as for consult-buffer, or others.
-- Do not change  original behavior with advice/hook
-  - Changing hook or some function advice/hook by Projab's function
+- Do not change the original behavior with advice/hook
+  - Allow changing hook or some function advice/hook only via Projab's function. So that users can understand how it works.
 
 
 ** Capability
 
-- Simple integration tab-bar, project.el, and desktop.el
+- Simple integration of tab-bar, project.el, and desktop.el
 - It has some convenient features for daily use
   - list buffers on the tab, for consult
   - Out-of-box auto save function
@@ -21,7 +21,7 @@ This package aims:
 * Install
 This package does not join ELPA/MELPA. So you can:
 
-- install package.el via VC integration (recommendation)
+- Install via package.el's VC integration (recommendation)
 - use straight.el, elpaca.el, or such a similar package
 - Download projab.el and put it to your =load-path= .
 ** Setup
@@ -39,7 +39,7 @@ This package does not join ELPA/MELPA. So you can:
 * Usage
 
 ** Switching between projects
-Use =projab-switch-project= or =tab-bar-switch-to-tab= . I recommend to =tab-bar-switch-to-tab= when you use Marginalia.
+Use =projab-switch-project= or =tab-bar-switch-to-tab= . I recommend using =tab-bar-switch-to-tab= when you use Marginalia.
 
 * Configuration
 ** Customize
@@ -51,7 +51,7 @@ Use =projab-switch-project= or =tab-bar-switch-to-tab= . I recommend to =tab-bar
 | =projab-auto-save-on-exit=    | boolean       | =t=                 | If non-nil, automatically save all project sessions before Emacs exits.                                                      |
 | =projab-auto-save-interval=   | number or nil | =nil=               | Interval in minutes for timer-based auto-save.  =nil= disables it.  Call =projab-auto-save-timer-reset= to apply at runtime. |
 ** Consult integration
-=projab= does not provide any integration of =consult=, but it can really simple elisp.
+=projab= does not provide any integration of =consult=, but it can be done with really simple elisp.
 
 #+begin_src emacs-lisp
   ;; Filter Buffers for Consult-Buffer
@@ -90,8 +90,8 @@ Add test cases to =projab-test.el= . Use *ERT* for testing.
 
 ** Similar project
 - [[https://github.com/mclear-tools/tabspaces][Tabspaces]]
-  - This package is heavily inspired this package. I recommend to use this package first.
+  - =projab= is heavily inspired by this package. I recommend using this package first.
 - [[https://codeberg.org/akib/emacs-workroom][emacs-workroom]]
   - Similar concept, but without tab-bar integration
 - [[https://github.com/nex3/perspective-el][perspective-el]]
-  - Very popular package to management perspective
+  - A very popular package to manage perspective

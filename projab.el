@@ -70,8 +70,9 @@ When nil (the default), timer-based auto-save is disabled.
 Set to a positive number to enable periodic saving.
 Takes effect when `projab-mode' is toggled or when
 `projab-auto-save-timer-reset' is called."
-  :type '(choice (const :tag "Disabled" nil)
-                 (number :tag "Interval (minutes)"))
+  :type
+  '(choice (const :tag "Disabled" nil)
+           (number :tag "Interval (minutes)"))
   :group 'projab)
 
 ;;; Internal helpers
@@ -213,28 +214,35 @@ Returns t if a session was restored, nil otherwise."
 ;;; Switch project
 
 ;;;###autoload
-(defun projab-switch-project ()
+(defun projab-switch-project (&optional project-root)
   "Switch to a project tab, creating one if it doesn't exist.
+If PROJECT-ROOT is given, use it directly.  Otherwise, call
+`project-switch-project' interactively to select a project.
 If a tab for the selected project already exists, switch to it.
 Otherwise, create a new tab, associate it with the project,
 and restore the saved session if one exists."
   (interactive)
-  (let ((project-root (project-prompt-project-dir)))
-    (let ((existing-index (projab--find-tab-by-project project-root)))
-      (if existing-index
-          (tab-bar-select-tab (1+ existing-index))
-        (let ((project-name
-               (file-name-nondirectory
-                (directory-file-name project-root))))
-          (tab-bar-new-tab)
-          (projab--set-tab-parameter
-           :projab-project-root project-root)
-          (tab-bar-rename-tab project-name)
-          (delete-other-windows)
-          (when (or (not projab-auto-restore-session)
-                    (not
-                     (projab--restore-project-session project-root)))
-            (dired project-root)))))))
+
+  ;; Get project root
+  (unless project-root
+    (let ((project-switch-commands nil))
+      (call-interactively #'project-switch-project)
+      (setq project-root (project-root (project-current)))))
+
+  (let ((existing-index (projab--find-tab-by-project project-root)))
+    (if existing-index
+        (tab-bar-select-tab (1+ existing-index))
+      (let ((project-name
+             (file-name-nondirectory
+              (directory-file-name project-root))))
+        (tab-bar-new-tab)
+        (projab--set-tab-parameter :projab-project-root project-root)
+        (tab-bar-rename-tab project-name)
+        (delete-other-windows)
+        (when (or (not projab-auto-restore-session)
+                  (not
+                   (projab--restore-project-session project-root)))
+          (dired project-root))))))
 
 ;;; Close project
 
@@ -299,11 +307,13 @@ the project root, add the buffer to the tab's `:projab-extra-buffers' list."
   "Start the auto-save timer according to `projab-auto-save-interval'.
 Does nothing when the interval is nil or non-positive."
   (projab--auto-save-timer-cancel)
-  (when (and projab-auto-save-interval (> projab-auto-save-interval 0))
+  (when (and projab-auto-save-interval
+             (> projab-auto-save-interval 0))
     (setq projab--auto-save-timer
-          (run-at-time (* projab-auto-save-interval 60)
-                       (* projab-auto-save-interval 60)
-                       #'projab-save-all-sessions))))
+          (run-at-time
+           (* projab-auto-save-interval 60)
+           (* projab-auto-save-interval 60)
+           #'projab-save-all-sessions))))
 
 ;;;###autoload
 (defun projab-auto-save-timer-reset ()

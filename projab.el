@@ -31,6 +31,7 @@
 
 ;;; Code:
 
+(require 'map)
 (require 'tab-bar)
 (require 'project)
 (require 'desktop)
@@ -77,12 +78,12 @@ The directory name is the MD5 hash of PROJECT-ROOT."
 (defun projab--tab-parameter (key &optional tab)
   "Get parameter KEY from TAB (defaults to current tab)."
   (let ((tab (or tab (tab-bar--current-tab))))
-    (alist-get key (cdr tab))))
+    (map-elt (cdr tab) key)))
 
 (defun projab--set-tab-parameter (key value)
   "Set parameter KEY to VALUE on the current tab."
   (let ((tab (tab-bar--current-tab-find)))
-    (setf (alist-get key (cdr tab)) value)))
+    (setf (map-elt (cdr tab) key) value)))
 
 (defun projab--find-tab-by-project (project-root)
   "Find a tab associated with PROJECT-ROOT.
@@ -92,7 +93,7 @@ Return the tab index or nil."
         (found nil))
     (dolist (tab tabs)
       (when (equal
-             (alist-get :projab-project-root (cdr tab)) project-root)
+             (map-elt (cdr tab) :projab-project-root) project-root)
         (setq found index))
       (setq index (1+ index)))
     found))
@@ -103,7 +104,7 @@ Return the tab index or nil."
         (index 0)
         result)
     (dolist (tab tabs)
-      (let ((root (alist-get :projab-project-root (cdr tab))))
+      (let ((root (map-elt (cdr tab) :projab-project-root)))
         (when root
           (push (cons root index) result)))
       (setq index (1+ index)))

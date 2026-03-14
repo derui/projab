@@ -3,6 +3,7 @@ version: "3"
 vars:
   EMACS: emacs
   EL: projab.el
+  TEST_EL: projab-test.el
 
 tasks:
   compile:
@@ -16,6 +17,11 @@ tasks:
     cmds:
       - "{{.EMACS}} --batch --eval '(checkdoc-file \"{{.EL}}\")'"
 
-  lint:
-    desc: Run all checks (compile + checkdoc)
-    deps: [compile, checkdoc]
+  test:
+    desc: Run ERT tests
+    cmds:
+      - "{{.EMACS}} --batch -L . -l {{.TEST_EL}} -f ert-run-tests-batch-and-exit"
+
+  check:
+    desc: Run all checks (compile, checkdoc, and tests)
+    deps: [compile, checkdoc, test]

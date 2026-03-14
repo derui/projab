@@ -37,6 +37,7 @@
 (require 'tab-bar)
 (require 'project)
 (require 'desktop)
+(with-eval-after-load (require 'cl-lib))
 
 ;;; Customization
 
@@ -222,7 +223,8 @@ If the current tab has no project, fall back to `switch-to-buffer'."
          (desktop-restore-frames nil)
          (desktop-buffers-not-to-save nil)
          (desktop-files-not-to-save nil))
-    (desktop-save session-dir t t)))
+    (cl-letf (((symbol-function 'desktop-claim-lock) #'ignore))
+      (desktop-save session-dir t t))))
 
 (defun projab--restore-project-session (project-root)
   "Restore the session for PROJECT-ROOT from its desktop file.
@@ -300,7 +302,8 @@ and restore the saved session if one exists."
 ;;;###autoload
 (defun projab-switch-project ()
   "Switch to one of the currently open project tabs.
-Presents a list of open project tabs for selection and switches to the chosen one."
+Presents a list of open project tabs for selection and switches
+ to the chosen one."
   (interactive)
   (let ((project-tabs (projab--all-project-tabs)))
     (if (null project-tabs)

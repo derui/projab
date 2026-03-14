@@ -1,0 +1,21 @@
+* Projab - Project by tab
+Projab manages project from =project.el= with =tab-bar= and =desktop.el= .
+
+This package aims:
+
+- Depends only **standard package** of Emacs. It comes really good maintainability
+- Do not change  original behavior with advice/hook
+  - Changing hook or some function advice/hook by Projab's function
+
+
+* Development
+
+- Need =Taskfile= to execute task.
+
+** Standard check
+#+begin_src shell
+  $ task check
+#+end_src
+
+** Test management
+Add test cases to =projab-test.el= . Use *ERT* for testing.

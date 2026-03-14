@@ -64,14 +64,10 @@ This is effective only when `projab-mode' is enabled."
 
 ;;; Internal helpers
 
-(defun projab--project-name (project-root)
-  "Derive a directory-safe name from PROJECT-ROOT."
-  (let ((name (directory-file-name project-root)))
-    (replace-regexp-in-string "[/:\\\\]" "!" name)))
-
 (defun projab--session-dir (project-root)
-  "Return the session directory for PROJECT-ROOT, creating it if needed."
-  (let ((dir (expand-file-name (projab--project-name project-root)
+  "Return the session directory for PROJECT-ROOT, creating it if needed.
+The directory name is the MD5 hash of PROJECT-ROOT."
+  (let ((dir (expand-file-name (md5 project-root)
                                projab-sessions-directory)))
     (unless (file-directory-p dir)
       (make-directory dir t))

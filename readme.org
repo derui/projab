@@ -4,8 +4,18 @@ Projab manages project from =project.el= with =tab-bar= and =desktop.el= .
 This package aims:
 
 - Depends only **standard package** of Emacs. It comes really good maintainability
+  - Do not add other-package related function, such as for consult-buffer, or others.
 - Do not change  original behavior with advice/hook
   - Changing hook or some function advice/hook by Projab's function
+
+
+** Capability
+
+- Simple integration tab-bar, project.el, and desktop.el
+- It has some convenient features for daily use
+  - list buffers on the tab, for consult
+  - Out-of-box auto save function
+
 
 
 * Install
@@ -47,3 +57,13 @@ This package does not join ELPA/MELPA. So you can:
 
 ** Test management
 Add test cases to =projab-test.el= . Use *ERT* for testing.
+
+* Information
+
+** Similar project
+- [[https://github.com/mclear-tools/tabspaces][Tabspaces]]
+  - This package is heavily inspired this package. I recommend to use this package first.
+- [[https://codeberg.org/akib/emacs-workroom][emacs-workroom]]
+  - Similar concept, but without tab-bar integration
+- [[https://github.com/nex3/perspective-el][perspective-el]]
+  - Very popular package to management perspective

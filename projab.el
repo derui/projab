@@ -190,7 +190,7 @@ If the current tab has no project, fall back to `switch-to-buffer'."
          (desktop-restore-frames nil)
          (desktop-buffers-not-to-save nil)
          (desktop-files-not-to-save nil))
-    (desktop-save session-dir nil t)))
+    (desktop-save session-dir t t)))
 
 (defun projab--restore-project-session (project-root)
   "Restore the session for PROJECT-ROOT from its desktop file.

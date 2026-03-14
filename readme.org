@@ -29,11 +29,12 @@ This package does not join ELPA/MELPA. So you can:
 #+end_src
 ** Customize
 
-| Variable                      | Type      | Default             | Description                                                                 |
-|-------------------------------+-----------+---------------------+-----------------------------------------------------------------------------|
-| =projab-sessions-directory=   | directory | =~/.emacs.d/projab= | Directory where per-project sessions are stored.                            |
-| =projab-auto-restore-session= | boolean   | =t=                 | If non-nil, automatically restore a project's session when opening its tab. |
-| =projab-auto-save-on-exit=    | boolean   | =t=                 | If non-nil, automatically save all project sessions before Emacs exits.     |
+| Variable                      | Type          | Default             | Description                                                                                                                  |
+|-------------------------------+---------------+---------------------+------------------------------------------------------------------------------------------------------------------------------|
+| =projab-sessions-directory=   | directory     | =~/.emacs.d/projab= | Directory where per-project sessions are stored.                                                                             |
+| =projab-auto-restore-session= | boolean       | =t=                 | If non-nil, automatically restore a project's session when opening its tab.                                                  |
+| =projab-auto-save-on-exit=    | boolean       | =t=                 | If non-nil, automatically save all project sessions before Emacs exits.                                                      |
+| =projab-auto-save-interval=   | number or nil | =nil=               | Interval in minutes for timer-based auto-save.  =nil= disables it.  Call =projab-auto-save-timer-reset= to apply at runtime. |
 
 * Development
 

@@ -24,6 +24,7 @@
 ;;   `projab-switch-buffer'   - Switch among buffers in current project tab
 ;;   `projab-close-project'   - Close current project tab (saves session)
 ;;   `projab-save-all-sessions' - Save all open project tab sessions
+;;   `projab-auto-save-timer-reset' - Restart timer after changing interval
 ;;
 ;; Usage:
 ;;   (require 'projab)
@@ -61,6 +62,16 @@ exists, it restores that session automatically.  Set to nil to disable."
   "If non-nil, automatically save all project sessions before Emacs exits.
 This is effective only when `projab-mode' is enabled."
   :type 'boolean
+  :group 'projab)
+
+(defcustom projab-auto-save-interval nil
+  "Interval in minutes for timer-based auto-save of all project sessions.
+When nil (the default), timer-based auto-save is disabled.
+Set to a positive number to enable periodic saving.
+Takes effect when `projab-mode' is toggled or when
+`projab-auto-save-timer-reset' is called."
+  :type '(choice (const :tag "Disabled" nil)
+                 (number :tag "Interval (minutes)"))
   :group 'projab)
 
 ;;; Internal helpers
@@ -273,6 +284,34 @@ the project root, add the buffer to the tab's `:projab-extra-buffers' list."
         (when (and extra (not (eq pruned extra)))
           (map-put! (cdr tab) :projab-extra-buffers pruned))))))
 
+;;; Timer-based auto-save
+
+(defvar projab--auto-save-timer nil
+  "Timer object for periodic auto-save, or nil when inactive.")
+
+(defun projab--auto-save-timer-cancel ()
+  "Cancel the running auto-save timer if any."
+  (when projab--auto-save-timer
+    (cancel-timer projab--auto-save-timer)
+    (setq projab--auto-save-timer nil)))
+
+(defun projab--auto-save-timer-start ()
+  "Start the auto-save timer according to `projab-auto-save-interval'.
+Does nothing when the interval is nil or non-positive."
+  (projab--auto-save-timer-cancel)
+  (when (and projab-auto-save-interval (> projab-auto-save-interval 0))
+    (setq projab--auto-save-timer
+          (run-at-time (* projab-auto-save-interval 60)
+                       (* projab-auto-save-interval 60)
+                       #'projab-save-all-sessions))))
+
+;;;###autoload
+(defun projab-auto-save-timer-reset ()
+  "Restart the auto-save timer using the current `projab-auto-save-interval'.
+Call this after changing `projab-auto-save-interval' at runtime."
+  (interactive)
+  (projab--auto-save-timer-start))
+
 ;;; Minor mode
 
 (defun projab--kill-emacs-hook ()
@@ -293,7 +332,9 @@ When enabled, project tab sessions are automatically saved on exit."
         (tab-bar-mode 1)
         (add-hook 'kill-emacs-hook #'projab--kill-emacs-hook)
         (add-hook 'find-file-hook #'projab--find-file-hook)
-        (add-hook 'kill-buffer-hook #'projab--kill-buffer-hook))
+        (add-hook 'kill-buffer-hook #'projab--kill-buffer-hook)
+        (projab--auto-save-timer-start))
+    (projab--auto-save-timer-cancel)
     (remove-hook 'kill-emacs-hook #'projab--kill-emacs-hook)
     (remove-hook 'find-file-hook #'projab--find-file-hook)
     (remove-hook 'kill-buffer-hook #'projab--kill-buffer-hook)))

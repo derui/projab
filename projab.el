@@ -67,8 +67,9 @@ This is effective only when `projab-mode' is enabled."
 (defun projab--session-dir (project-root)
   "Return the session directory for PROJECT-ROOT, creating it if needed.
 The directory name is the MD5 hash of PROJECT-ROOT."
-  (let ((dir (expand-file-name (md5 project-root)
-                               projab-sessions-directory)))
+  (let ((dir
+         (expand-file-name (md5 project-root)
+                           projab-sessions-directory)))
     (unless (file-directory-p dir)
       (make-directory dir t))
     dir))
@@ -90,7 +91,8 @@ Return the tab index or nil."
         (index 0)
         (found nil))
     (dolist (tab tabs)
-      (when (equal (alist-get 'projab-project-root (cdr tab)) project-root)
+      (when (equal
+             (alist-get 'projab-project-root (cdr tab)) project-root)
         (setq found index))
       (setq index (1+ index)))
     found))
@@ -127,8 +129,11 @@ Returns nil if the current tab has no associated project."
          (lambda (buf)
            (let ((file (buffer-file-name buf))
                  (dir (buffer-local-value 'default-directory buf)))
-             (or (and file (string-prefix-p expanded-root (expand-file-name file)))
-                 (string-prefix-p expanded-root (expand-file-name dir)))))
+             (or (and file
+                      (string-prefix-p
+                       expanded-root (expand-file-name file)))
+                 (string-prefix-p
+                  expanded-root (expand-file-name dir)))))
          (buffer-list))))))
 
 ;;;###autoload
@@ -139,7 +144,8 @@ If the current tab has no project, fall back to `switch-to-buffer'."
   (let ((bufs (projab-list-buffers)))
     (if bufs
         (let* ((names (mapcar #'buffer-name bufs))
-               (choice (completing-read "Project buffer: " names nil t)))
+               (choice
+                (completing-read "Project buffer: " names nil t)))
           (switch-to-buffer choice))
       (call-interactively #'switch-to-buffer))))
 
@@ -197,14 +203,17 @@ and restore the saved session if one exists."
     (let ((existing-index (projab--find-tab-by-project project-root)))
       (if existing-index
           (tab-bar-select-tab (1+ existing-index))
-        (let ((project-name (file-name-nondirectory
-                             (directory-file-name project-root))))
+        (let ((project-name
+               (file-name-nondirectory
+                (directory-file-name project-root))))
           (tab-bar-new-tab)
-          (projab--set-tab-parameter 'projab-project-root project-root)
+          (projab--set-tab-parameter
+           'projab-project-root project-root)
           (tab-bar-rename-tab project-name)
           (delete-other-windows)
           (when (or (not projab-auto-restore-session)
-                    (not (projab--restore-project-session project-root)))
+                    (not
+                     (projab--restore-project-session project-root)))
             (dired project-root)))))))
 
 ;;; Close project
@@ -234,7 +243,8 @@ With prefix argument, skip saving."
 When enabled, project tab sessions are automatically saved on exit."
   :global t
   :lighter " Projab"
-  :group 'projab
+  :group
+  'projab
   (if projab-mode
       (progn
         (tab-bar-mode 1)

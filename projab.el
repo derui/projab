@@ -49,6 +49,19 @@ Each project gets a subdirectory named after its root directory."
   :type 'directory
   :group 'projab)
 
+(defcustom projab-auto-restore-session t
+  "If non-nil, automatically restore a project's session when opening its tab.
+When `projab-switch-project' opens a new project tab and a saved session
+exists, it restores that session automatically.  Set to nil to disable."
+  :type 'boolean
+  :group 'projab)
+
+(defcustom projab-auto-save-on-exit t
+  "If non-nil, automatically save all project sessions before Emacs exits.
+This is effective only when `projab-mode' is enabled."
+  :type 'boolean
+  :group 'projab)
+
 ;;; Internal helpers
 
 (defun projab--project-name (project-root)
@@ -194,7 +207,8 @@ and restore the saved session if one exists."
           (projab--set-tab-parameter 'projab-project-root project-root)
           (tab-bar-rename-tab project-name)
           (delete-other-windows)
-          (unless (projab--restore-project-session project-root)
+          (when (or (not projab-auto-restore-session)
+                    (not (projab--restore-project-session project-root)))
             (dired project-root)))))))
 
 ;;; Close project
@@ -215,7 +229,8 @@ With prefix argument, skip saving."
 
 (defun projab--kill-emacs-hook ()
   "Save all project sessions before Emacs exits."
-  (projab-save-all-sessions))
+  (when projab-auto-save-on-exit
+    (projab-save-all-sessions)))
 
 ;;;###autoload
 (define-minor-mode projab-mode

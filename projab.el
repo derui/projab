@@ -194,9 +194,16 @@ When called interactively, prompt to select a buffer from the project list."
    (if (called-interactively-p 'any)
        (when-let* ((bufs (projab-list-buffers)))
          (get-buffer
-          (completing-read
-           "Remove buffer: " (mapcar #'buffer-name bufs)
-           nil t)))
+          (completing-read "Remove buffer: "
+                           (lambda (str pred action)
+                             (if (eq action 'metadata)
+                                 '(metadata (category . buffer))
+                               (complete-with-action
+                                action
+                                (mapcar
+                                 #'buffer-name bufs)
+                                str pred)))
+                           nil t)))
      buffer)))
 
 ;;;###autoload
@@ -206,9 +213,17 @@ If the current tab has no project, fall back to `switch-to-buffer'."
   (interactive)
   (let ((bufs (projab-list-buffers)))
     (if bufs
-        (let* ((names (mapcar #'buffer-name bufs))
-               (choice
-                (completing-read "Project buffer: " names nil t)))
+        (let* ((choice
+                (completing-read "Project buffer: "
+                                 (lambda (str pred action)
+                                   (if (eq action 'metadata)
+                                       '(metadata (category . buffer))
+                                     (complete-with-action
+                                      action
+                                      (mapcar #'buffer-name bufs)
+                                      str
+                                      pred)))
+                                 nil t)))
           (switch-to-buffer choice))
       (call-interactively #'switch-to-buffer))))
 

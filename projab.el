@@ -236,8 +236,12 @@ If the current tab has no project, fall back to `switch-to-buffer'."
          (desktop-base-file-name "desktop")
          (desktop-base-lock-name "desktop.lock")
          (desktop-restore-frames nil)
+         (desktop-save t)
          (desktop-buffers-not-to-save nil)
-         (desktop-files-not-to-save nil))
+         (desktop-files-not-to-save nil)
+         (desktop-file-modtime
+          (file-attribute-modification-time
+           (file-attributes (expand-file-name "desktop" session-dir)))))
     (cl-letf (((symbol-function 'desktop-claim-lock) #'ignore))
       (desktop-save session-dir t t))))
 

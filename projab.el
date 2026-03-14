@@ -92,7 +92,7 @@ Return the tab index or nil."
         (found nil))
     (dolist (tab tabs)
       (when (equal
-             (alist-get 'projab-project-root (cdr tab)) project-root)
+             (alist-get :projab-project-root (cdr tab)) project-root)
         (setq found index))
       (setq index (1+ index)))
     found))
@@ -103,7 +103,7 @@ Return the tab index or nil."
         (index 0)
         result)
     (dolist (tab tabs)
-      (let ((root (alist-get 'projab-project-root (cdr tab))))
+      (let ((root (alist-get :projab-project-root (cdr tab))))
         (when root
           (push (cons root index) result)))
       (setq index (1+ index)))
@@ -114,7 +114,7 @@ Return the tab index or nil."
 ;;;###autoload
 (defun projab-project-root ()
   "Return the project root associated with the current tab, or nil."
-  (projab--tab-parameter 'projab-project-root))
+  (projab--tab-parameter :projab-project-root))
 
 ;;; Buffer list
 
@@ -208,7 +208,7 @@ and restore the saved session if one exists."
                 (directory-file-name project-root))))
           (tab-bar-new-tab)
           (projab--set-tab-parameter
-           'projab-project-root project-root)
+           :projab-project-root project-root)
           (tab-bar-rename-tab project-name)
           (delete-other-windows)
           (when (or (not projab-auto-restore-session)

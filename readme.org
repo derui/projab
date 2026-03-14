@@ -3,7 +3,7 @@ Projab manages project from =project.el= with =tab-bar= and =desktop.el= .
 
 This package aims:
 
-- Depends only **standard package** of Emacs. It comes really good maintainability
+- Depends only *standard package* of Emacs. It comes really good maintainability
   - Do not add other-package related function, such as for consult-buffer, or others.
 - Do not change  original behavior with advice/hook
   - Changing hook or some function advice/hook by Projab's function

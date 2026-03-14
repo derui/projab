@@ -24,9 +24,6 @@ This package does not join ELPA/MELPA. So you can:
 - install package.el via VC integration (recommendation)
 - use straight.el, elpaca.el, or such a similar package
 - Download projab.el and put it to your =load-path= .
-
-
-* Configuration
 ** Setup
 
 #+begin_src emacs-lisp
@@ -37,6 +34,14 @@ This package does not join ELPA/MELPA. So you can:
   ;; Enable global minor mode.
   (projab-mode +1)
 #+end_src
+
+
+* Usage
+
+** Switching between projects
+Use =projab-switch-project= or =tab-bar-switch-to-tab= . I recommend to =tab-bar-switch-to-tab= when you use Marginalia.
+
+* Configuration
 ** Customize
 
 | Variable                      | Type          | Default             | Description                                                                                                                  |

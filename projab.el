@@ -20,7 +20,8 @@
 ;; Sessions are saved per-project using desktop.el (without frame restore).
 ;;
 ;; Main commands:
-;;   `projab-switch-project'  - Open/switch to a project tab (restores session)
+;;   `projab-open-project'  - Open/switch to a project tab (restores session)
+;;   `projab-switch-project'  - Switch among currently open project tabs
 ;;   `projab-switch-buffer'   - Switch among buffers in current project tab
 ;;   `projab-close-project'   - Close current project tab (saves session)
 ;;   `projab-save-all-sessions' - Save all open project tab sessions
@@ -53,7 +54,7 @@ Each project gets a subdirectory named after its root directory."
 
 (defcustom projab-auto-restore-session t
   "If non-nil, automatically restore a project's session when opening its tab.
-When `projab-switch-project' opens a new project tab and a saved session
+When `projab-open-project' opens a new project tab and a saved session
 exists, it restores that session automatically.  Set to nil to disable."
   :type 'boolean
   :group 'projab)
@@ -221,8 +222,17 @@ Returns t if a session was restored, nil otherwise."
 
 ;;; Switch project
 
+(defvar-local projab--switch-project-root nil
+  "temporary root while switching root")
+
+(defun projab--store-new-root ()
+  "Stores new root from `project-current' to `projab--switch-project-root'."
+  (interactive)
+  (setq-local projab--switch-project-root
+              (project-root (project-current))))
+
 ;;;###autoload
-(defun projab-switch-project (&optional project-root)
+(defun projab-open-project (&optional project-root)
   "Switch to a project tab, creating one if it doesn't exist.
 If PROJECT-ROOT is given, use it directly.  Otherwise, call
 `project-switch-project' interactively to select a project.
@@ -233,9 +243,10 @@ and restore the saved session if one exists."
 
   ;; Get project root
   (unless project-root
-    (let ((project-switch-commands nil))
+    (let ((project-switch-commands 'projab--store-new-root))
       (call-interactively #'project-switch-project)
-      (setq project-root (project-root (project-current)))))
+      (setq project-root projab--switch-project-root)))
+  (print project-root)
 
   (let ((existing-index (projab--find-tab-by-project project-root)))
     (if existing-index
@@ -251,6 +262,31 @@ and restore the saved session if one exists."
                   (not
                    (projab--restore-project-session project-root)))
           (dired project-root))))))
+
+;;; Switch among open project tabs
+
+;;;###autoload
+(defun projab-switch-project ()
+  "Switch to one of the currently open project tabs.
+Presents a list of open project tabs for selection and switches to the chosen one."
+  (interactive)
+  (let ((project-tabs (projab--all-project-tabs)))
+    (if (null project-tabs)
+        (message "No open project tabs.")
+      (let* ((choices
+              (mapcar
+               (lambda (pt)
+                 (cons
+                  (file-name-nondirectory
+                   (directory-file-name (car pt)))
+                  (cdr pt)))
+               project-tabs))
+             (names (mapcar #'car choices))
+             (choice
+              (completing-read "Switch to project: " names nil t))
+
+             (index (cdr (assoc choice choices))))
+        (tab-bar-select-tab (1+ index))))))
 
 ;;; Close project
 

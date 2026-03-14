@@ -363,5 +363,53 @@
         (should (null (projab--restore-project-session root)))
       (delete-directory projab-sessions-directory t))))
 
+;;; projab-switch-project
+
+(ert-deftest projab-test-switch-project-selects-tab ()
+  "projab-switch-project switches to the tab corresponding to the chosen project."
+  (let ((fake-tabs
+         '((current-tab (name . "scratch"))
+           (tab (name . "proj-a") (:projab-project-root . "/projects/alpha/"))
+           (tab (name . "proj-b") (:projab-project-root . "/projects/beta/"))))
+        (tab-bar-tabs-function nil)
+        (selected-tab nil))
+    (setq tab-bar-tabs-function (lambda () fake-tabs))
+    (cl-letf (((symbol-function 'completing-read)
+               (lambda (_prompt _choices &rest _) "beta"))
+              ((symbol-function 'tab-bar-select-tab)
+               (lambda (n) (setq selected-tab n))))
+      (projab-switch-project)
+      ;; beta is at index 2, so tab-bar-select-tab is called with (1+ 2) = 3
+      (should (equal 3 selected-tab)))))
+
+(ert-deftest projab-test-switch-project-no-tabs-shows-message ()
+  "projab-switch-project shows a message when there are no open project tabs."
+  (let ((fake-tabs
+         '((current-tab (name . "scratch"))))
+        (tab-bar-tabs-function nil)
+        (msg nil))
+    (setq tab-bar-tabs-function (lambda () fake-tabs))
+    (cl-letf (((symbol-function 'message)
+               (lambda (fmt &rest _) (setq msg fmt))))
+      (projab-switch-project)
+      (should (equal "No open project tabs." msg)))))
+
+(ert-deftest projab-test-switch-project-offers-only-project-tabs ()
+  "projab-switch-project only presents project tabs as candidates."
+  (let ((fake-tabs
+         '((current-tab (name . "scratch"))
+           (tab (name . "proj-a") (:projab-project-root . "/projects/alpha/"))))
+        (tab-bar-tabs-function nil)
+        (offered nil))
+    (setq tab-bar-tabs-function (lambda () fake-tabs))
+    (cl-letf (((symbol-function 'completing-read)
+               (lambda (_prompt choices &rest _)
+                 (setq offered choices)
+                 (car choices)))
+              ((symbol-function 'tab-bar-select-tab) #'ignore))
+      (projab-switch-project)
+      ;; Only "alpha" should be offered; "scratch" has no project root
+      (should (equal '("alpha") offered)))))
+
 (provide 'projab-test)
 ;;; projab-test.el ends here

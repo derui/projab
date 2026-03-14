@@ -273,6 +273,55 @@
       (when (buffer-live-p buf-keep)
         (kill-buffer buf-keep)))))
 
+;;; projab-local-buffer-p
+
+(ert-deftest projab-test-local-buffer-p-returns-t-for-project-buffer ()
+  "projab-local-buffer-p returns t for both a buffer object and its name string."
+  (let* ((root (file-name-as-directory (make-temp-file "projab-proj" t)))
+         (buf (get-buffer-create " *projab-test-local-in*")))
+    (unwind-protect
+        (progn
+          (with-current-buffer buf
+            (setq default-directory root))
+          (cl-letf (((symbol-function 'projab-project-root)
+                     (lambda () root)))
+            (dolist (arg (list buf (buffer-name buf)))
+              (should (eq t (projab-local-buffer-p arg))))))
+      (kill-buffer buf)
+      (delete-directory root t))))
+
+(ert-deftest projab-test-local-buffer-p-returns-nil-for-foreign-buffer ()
+  "projab-local-buffer-p returns nil for a buffer outside the project root."
+  (let* ((root (file-name-as-directory (make-temp-file "projab-proj" t)))
+         (buf (get-buffer-create " *projab-test-local-out*")))
+    (unwind-protect
+        (progn
+          (with-current-buffer buf
+            (setq default-directory "/tmp/other/"))
+          (cl-letf (((symbol-function 'projab-project-root)
+                     (lambda () root)))
+            (should (null (projab-local-buffer-p buf)))))
+      (kill-buffer buf)
+      (delete-directory root t))))
+
+(ert-deftest projab-test-local-buffer-p-returns-nil-when-no-project ()
+  "projab-local-buffer-p returns nil when the current tab has no project."
+  (let ((buf (get-buffer-create " *projab-test-local-noproject*")))
+    (unwind-protect
+        (cl-letf (((symbol-function 'projab-project-root)
+                   (lambda () nil)))
+          (should (null (projab-local-buffer-p buf))))
+      (kill-buffer buf))))
+
+(ert-deftest projab-test-local-buffer-p-returns-nil-for-unknown-name ()
+  "projab-local-buffer-p returns nil for a buffer name that does not exist."
+  (let* ((root (file-name-as-directory (make-temp-file "projab-proj" t))))
+    (unwind-protect
+        (cl-letf (((symbol-function 'projab-project-root)
+                   (lambda () root)))
+          (should (null (projab-local-buffer-p " *projab-nonexistent-xyz*"))))
+      (delete-directory root t))))
+
 ;;; projab--save-project-session
 
 (ert-deftest projab-test-save-session-calls-desktop-save ()

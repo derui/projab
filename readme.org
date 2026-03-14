@@ -45,7 +45,30 @@ This package does not join ELPA/MELPA. So you can:
 | =projab-auto-restore-session= | boolean       | =t=                 | If non-nil, automatically restore a project's session when opening its tab.                                                  |
 | =projab-auto-save-on-exit=    | boolean       | =t=                 | If non-nil, automatically save all project sessions before Emacs exits.                                                      |
 | =projab-auto-save-interval=   | number or nil | =nil=               | Interval in minutes for timer-based auto-save.  =nil= disables it.  Call =projab-auto-save-timer-reset= to apply at runtime. |
+** Consult integration
+=projab= does not provide any integration of =consult=, but it can really simple elisp.
 
+#+begin_src emacs-lisp
+  ;; Filter Buffers for Consult-Buffer
+  (with-eval-after-load 'consult
+    ;; set consult-workspace buffer list
+    (defvar consult--source-workspace
+      (list
+       :name "Workspace Buffers"
+       :narrow ?w
+       :history 'buffer-name-history
+       :category 'buffer
+       :state #'consult--buffer-state
+       :default t
+       :items
+       (lambda ()
+         (consult--buffer-query
+          :predicate #'projab-local-buffer-p
+          :sort 'visibility
+          :as #'buffer-name)))
+      "Set workspace buffer list for consult-buffer.")
+    (add-to-list 'consult-buffer-sources 'consult--source-workspace))
+#+end_src
 * Development
 
 - Need =Taskfile= to execute task.

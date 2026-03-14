@@ -5,7 +5,7 @@
 ;; Author: derui
 ;; URL: https://github.com/derui/projab
 ;; Version: 0.1.0
-;; Package-Requires: ((emacs "28.1"))
+;; Package-Requires: ((emacs "30.1"))
 ;; Keywords: convenience, project
 
 ;; This file is licensed under the MIT License.
@@ -156,6 +156,14 @@ Returns nil if the current tab has no associated project."
         (cl-remove-duplicates
          (append
           project-bufs (cl-remove-if-not #'buffer-live-p extra)))))))
+
+;;;###autoload
+(defun projab-local-buffer-p (buffer-or-name)
+  "Return t if BUFFER-OR-NAME belongs to the current tab's project workspace.
+BUFFER-OR-NAME may be a buffer object or a buffer name string.
+Returns nil if the current tab has no associated project."
+  (when-let* ((buf (get-buffer buffer-or-name)))
+    (not (null (memq buf (projab-list-buffers))))))
 
 ;;;###autoload
 (defun projab-switch-buffer ()

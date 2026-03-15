@@ -411,6 +411,56 @@
       ;; Only "alpha" should be offered; "scratch" has no project root
       (should (equal '("alpha") offered)))))
 
+;;; projab-project-add-current-buffer
+
+(ert-deftest projab-test-add-current-buffer-adds-to-extra ()
+  "projab-project-add-current-buffer adds the current buffer to :projab-extra-buffers."
+  (let* ((buf (get-buffer-create " *projab-test-add-current*"))
+         (set-key nil)
+         (set-val nil))
+    (unwind-protect
+        (with-current-buffer buf
+          (cl-letf (((symbol-function 'projab-project-root)
+                     (lambda () "/myproject/"))
+                    ((symbol-function 'projab--tab-parameter)
+                     (lambda (key &optional _tab)
+                       (when (eq key :projab-extra-buffers)
+                         nil)))
+                    ((symbol-function 'projab--set-tab-parameter)
+                     (lambda (key val)
+                       (setq set-key key set-val val))))
+            (projab-project-add-current-buffer)
+            (should (eq set-key :projab-extra-buffers))
+            (should (memq buf set-val))))
+      (kill-buffer buf))))
+
+(ert-deftest projab-test-add-current-buffer-no-duplicate ()
+  "projab-project-add-current-buffer does not add the buffer if already present."
+  (let* ((buf (get-buffer-create " *projab-test-add-current-dup*"))
+         (set-called nil))
+    (unwind-protect
+        (with-current-buffer buf
+          (cl-letf (((symbol-function 'projab-project-root)
+                     (lambda () "/myproject/"))
+                    ((symbol-function 'projab--tab-parameter)
+                     (lambda (key &optional _tab)
+                       (when (eq key :projab-extra-buffers)
+                         (list buf))))
+                    ((symbol-function 'projab--set-tab-parameter)
+                     (lambda (&rest _) (setq set-called t))))
+            (projab-project-add-current-buffer)
+            (should (null set-called))))
+      (kill-buffer buf))))
+
+(ert-deftest projab-test-add-current-buffer-noop-when-no-project ()
+  "projab-project-add-current-buffer does nothing when there is no project."
+  (let ((set-called nil))
+    (cl-letf (((symbol-function 'projab-project-root) (lambda () nil))
+              ((symbol-function 'projab--set-tab-parameter)
+               (lambda (&rest _) (setq set-called t))))
+      (projab-project-add-current-buffer)
+      (should (null set-called)))))
+
 ;;; projab-project-remove-current-buffer
 
 (ert-deftest projab-test-remove-current-buffer-removes-from-extra ()

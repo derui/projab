@@ -167,6 +167,15 @@ Returns nil if the current tab has no associated project."
   (when-let* ((buf (get-buffer buffer-or-name)))
     (not (null (memq buf (projab-list-buffers))))))
 
+(defun projab--project-add-buffer (buffer)
+  "Add BUFFER to the current project's extra buffer list."
+  (when-let* ((root (projab-project-root)))
+    (let* ((buf (get-buffer buffer))
+           (extra (projab--tab-parameter :projab-extra-buffers)))
+      (unless (memq buf extra)
+        (projab--set-tab-parameter
+         :projab-extra-buffers (cons buf extra))))))
+
 (defun projab--project-remove-buffer (buffer)
   "Remove `BUFFER' from current project.
 
@@ -178,6 +187,12 @@ When the `BUFFER' is in the project, keep showing it unless removed."
         (when (not (eq pruned extra))
           (projab--set-tab-parameter
            :projab-extra-buffers pruned))))))
+
+;;;###autoload
+(defun projab-project-add-current-buffer ()
+  "Add the current buffer to the current project's extra buffer list."
+  (interactive)
+  (projab--project-add-buffer (current-buffer)))
 
 ;;;###autoload
 (defun projab-project-remove-current-buffer ()
@@ -241,7 +256,8 @@ If the current tab has no project, fall back to `switch-to-buffer'."
          (desktop-files-not-to-save nil)
          (desktop-file-modtime
           (file-attribute-modification-time
-           (file-attributes (expand-file-name "desktop" session-dir)))))
+           (file-attributes
+            (expand-file-name "desktop" session-dir)))))
     (cl-letf (((symbol-function 'desktop-claim-lock) #'ignore))
       (desktop-save session-dir t t))))
 

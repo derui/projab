@@ -254,11 +254,14 @@ If the current tab has no project, fall back to `switch-to-buffer'."
          (desktop-save t)
          (desktop-buffers-not-to-save nil)
          (desktop-files-not-to-save nil)
+         ;; ignore claim lock forcibly
          (desktop-file-modtime
           (file-attribute-modification-time
            (file-attributes
             (expand-file-name "desktop" session-dir)))))
-    (cl-letf (((symbol-function 'desktop-claim-lock) #'ignore))
+    ;; Override `buffer-list' temporary. This will be affect internally change.
+    (cl-letf (((symbol-function 'buffer-list)
+               ((lambda (&optional _frame) (projab-list-buffers)))))
       (desktop-save session-dir t t))))
 
 (defun projab--restore-project-session (project-root)

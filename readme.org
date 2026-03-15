@@ -15,6 +15,15 @@ This package aims to provide:
 - It has some convenient features for daily use
   - list buffers on the tab, for consult
   - Out-of-box auto save function
+- Add/Remove buffer into/from project unless the file is not in the project
+
+
+** Will not implement
+- Window layout restoration
+  - This is the most difficult thing in such a session management. Other packages will try to manage this, but it seems that is only opinionated, each person has different opinions.
+- Customization of the desktop directory name
+  - The =.emacs.desktop= file is not portable between machines.
+  - If you change location the project, it becamos incompatible and cannot be reused.
 
 
 

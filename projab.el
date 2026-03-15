@@ -261,7 +261,7 @@ If the current tab has no project, fall back to `switch-to-buffer'."
             (expand-file-name "desktop" session-dir)))))
     ;; Override `buffer-list' temporary. This will be affect internally change.
     (cl-letf (((symbol-function 'buffer-list)
-               ((lambda (&optional _frame) (projab-list-buffers)))))
+               (lambda (&optional _frame) (projab-list-buffers))))
       (desktop-save session-dir t t))))
 
 (defun projab--restore-project-session (project-root)

@@ -1,6 +1,8 @@
 * Projab - Project by tab
 Projab manages project from =project.el= with =tab-bar= and =desktop.el= .
 
+[[file:logo.png]]
+
 This package aims to provide:
 
 - Depends only *standard package* of Emacs. It provides really good maintainability

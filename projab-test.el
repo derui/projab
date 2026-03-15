@@ -80,52 +80,48 @@
 ;;; projab-list-buffers
 
 (ert-deftest projab-test-list-buffers-returns-project-buffers ()
-  "projab-list-buffers returns only buffers whose default-directory is under the project root."
-  (let* ((root
-          (file-name-as-directory (make-temp-file "projab-proj" t)))
+  "projab-list-buffers returns buffers reported by project-buffers."
+  (let* ((root "/home/user/myproject/")
          (buf-in (get-buffer-create " *projab-test-in*"))
-         (buf-out (get-buffer-create " *projab-test-out*")))
+         (buf-out (get-buffer-create " *projab-test-out*"))
+         (fake-project (cons 'vc root)))
     (unwind-protect
-        (progn
-          (with-current-buffer buf-in
-            (setq default-directory root))
-          (with-current-buffer buf-out
-            (setq default-directory "/tmp/other/"))
-          (cl-letf (((symbol-function 'projab-project-root)
-                     (lambda () root)))
-            (let ((result (projab-list-buffers)))
-              (should (memq buf-in result))
-              (should (not (memq buf-out result))))))
+        (cl-letf (((symbol-function 'projab-project-root)
+                   (lambda () root))
+                  ((symbol-function 'project-current)
+                   (lambda (&optional _maybe-prompt _dir) fake-project))
+                  ((symbol-function 'project-buffers)
+                   (lambda (_proj) (list buf-in))))
+          (let ((result (projab-list-buffers)))
+            (should (memq buf-in result))
+            (should (not (memq buf-out result)))))
       (kill-buffer buf-in)
-      (kill-buffer buf-out)
-      (delete-directory root t))))
+      (kill-buffer buf-out))))
 
 ;;; projab-list-buffers — extra buffers
 
 (ert-deftest projab-test-list-buffers-includes-extra-buffers ()
   "projab-list-buffers includes live buffers stored in :projab-extra-buffers."
-  (let* ((root
-          (file-name-as-directory (make-temp-file "projab-proj" t)))
+  (let* ((root "/home/user/myproject/")
          (buf-in (get-buffer-create " *projab-test-in2*"))
-         (buf-extra (get-buffer-create " *projab-test-extra*")))
+         (buf-extra (get-buffer-create " *projab-test-extra*"))
+         (fake-project (cons 'vc root)))
     (unwind-protect
-        (progn
-          (with-current-buffer buf-in
-            (setq default-directory root))
-          (with-current-buffer buf-extra
-            (setq default-directory "/tmp/other/"))
-          (cl-letf (((symbol-function 'projab-project-root)
-                     (lambda () root))
-                    ((symbol-function 'projab--tab-parameter)
-                     (lambda (key &optional _tab)
-                       (when (eq key :projab-extra-buffers)
-                         (list buf-extra)))))
-            (let ((result (projab-list-buffers)))
-              (should (memq buf-in result))
-              (should (memq buf-extra result)))))
+        (cl-letf (((symbol-function 'projab-project-root)
+                   (lambda () root))
+                  ((symbol-function 'project-current)
+                   (lambda (&optional _maybe-prompt _dir) fake-project))
+                  ((symbol-function 'project-buffers)
+                   (lambda (_proj) (list buf-in)))
+                  ((symbol-function 'projab--tab-parameter)
+                   (lambda (key &optional _tab)
+                     (when (eq key :projab-extra-buffers)
+                       (list buf-extra)))))
+          (let ((result (projab-list-buffers)))
+            (should (memq buf-in result))
+            (should (memq buf-extra result))))
       (kill-buffer buf-in)
-      (kill-buffer buf-extra)
-      (delete-directory root t))))
+      (kill-buffer buf-extra))))
 
 (ert-deftest projab-test-list-buffers-deduplicates-extra-buffers ()
   "projab-list-buffers does not include the same buffer twice."
@@ -277,18 +273,19 @@
 
 (ert-deftest projab-test-local-buffer-p-returns-t-for-project-buffer ()
   "projab-local-buffer-p returns t for both a buffer object and its name string."
-  (let* ((root (file-name-as-directory (make-temp-file "projab-proj" t)))
-         (buf (get-buffer-create " *projab-test-local-in*")))
+  (let* ((root "/home/user/myproject/")
+         (buf (get-buffer-create " *projab-test-local-in*"))
+         (fake-project (cons 'vc root)))
     (unwind-protect
-        (progn
-          (with-current-buffer buf
-            (setq default-directory root))
-          (cl-letf (((symbol-function 'projab-project-root)
-                     (lambda () root)))
-            (dolist (arg (list buf (buffer-name buf)))
-              (should (eq t (projab-local-buffer-p arg))))))
-      (kill-buffer buf)
-      (delete-directory root t))))
+        (cl-letf (((symbol-function 'projab-project-root)
+                   (lambda () root))
+                  ((symbol-function 'project-current)
+                   (lambda (&optional _maybe-prompt _dir) fake-project))
+                  ((symbol-function 'project-buffers)
+                   (lambda (_proj) (list buf))))
+          (dolist (arg (list buf (buffer-name buf)))
+            (should (eq t (projab-local-buffer-p arg)))))
+      (kill-buffer buf))))
 
 (ert-deftest projab-test-local-buffer-p-returns-nil-for-foreign-buffer ()
   "projab-local-buffer-p returns nil for a buffer outside the project root."

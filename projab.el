@@ -139,25 +139,13 @@ Return the tab index or nil."
 Includes buffers whose files are under the project root, and extra
 buffers explicitly associated with this tab via `:projab-extra-buffers'.
 Returns nil if the current tab has no associated project."
-  (let ((root (projab-project-root)))
-    (when root
-      (let* ((expanded-root (expand-file-name root))
-             (extra (projab--tab-parameter :projab-extra-buffers))
-             (project-bufs
-              (cl-remove-if-not
-               (lambda (buf)
-                 (let ((file (buffer-file-name buf))
-                       (dir
-                        (buffer-local-value 'default-directory buf)))
-                   (or (and file
-                            (string-prefix-p
-                             expanded-root (expand-file-name file)))
-                       (string-prefix-p
-                        expanded-root (expand-file-name dir)))))
-               (buffer-list))))
-        (cl-remove-duplicates
-         (append
-          project-bufs (cl-remove-if-not #'buffer-live-p extra)))))))
+  (when-let* ((root (projab-project-root)))
+    (cl-remove-duplicates
+     (append
+      (project-buffers (project-current))
+      (cl-remove-if-not
+       #'buffer-live-p
+       (projab--tab-parameter :projab-extra-buffers))))))
 
 ;;;###autoload
 (defun projab-local-buffer-p (buffer-or-name)
@@ -252,8 +240,6 @@ If the current tab has no project, fall back to `switch-to-buffer'."
          (desktop-base-lock-name "desktop.lock")
          (desktop-restore-frames nil)
          (desktop-save t)
-         (desktop-buffers-not-to-save nil)
-         (desktop-files-not-to-save nil)
          ;; ignore claim lock forcibly
          (desktop-file-modtime
           (file-attribute-modification-time

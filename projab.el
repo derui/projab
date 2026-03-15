@@ -139,10 +139,13 @@ Return the tab index or nil."
 Includes buffers whose files are under the project root, and extra
 buffers explicitly associated with this tab via `:projab-extra-buffers'.
 Returns nil if the current tab has no associated project."
-  (when-let* ((root (projab-project-root)))
+  (when-let* ((buffers
+               (and (project-current)
+                    (projab-project-root)
+                    (project-buffers (project-current)))))
     (cl-remove-duplicates
      (append
-      (project-buffers (project-current))
+      buffers
       (cl-remove-if-not
        #'buffer-live-p
        (projab--tab-parameter :projab-extra-buffers))))))
@@ -244,10 +247,11 @@ If the current tab has no project, fall back to `switch-to-buffer'."
          (desktop-file-modtime
           (file-attribute-modification-time
            (file-attributes
-            (expand-file-name "desktop" session-dir)))))
+            (expand-file-name "desktop" session-dir))))
+         (buffers (projab-list-buffers)))
     ;; Override `buffer-list' temporary. This will be affect internally change.
     (cl-letf (((symbol-function 'buffer-list)
-               (lambda (&optional _frame) (projab-list-buffers))))
+               (lambda (&optional _frame) buffers)))
       (desktop-save session-dir t t))))
 
 (defun projab--restore-project-session (project-root)
@@ -269,14 +273,12 @@ Returns t if a session was restored, nil otherwise."
 (defun projab-save-all-sessions ()
   "Save sessions for all open project tabs."
   (interactive)
-  (let ((current-index (tab-bar--current-tab-index))
-        (project-tabs (projab--all-project-tabs)))
-    (dolist (pt project-tabs)
+  (save-excursion
+    (dolist (pt (projab--all-project-tabs))
       (let ((root (car pt))
             (index (cdr pt)))
         (tab-bar-select-tab (1+ index))
-        (projab--save-project-session root)))
-    (tab-bar-select-tab (1+ current-index))))
+        (projab--save-project-session root)))))
 
 ;;; Switch project
 

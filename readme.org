@@ -49,6 +49,12 @@ This package does not join ELPA/MELPA. So you can:
 
 * Usage
 
+** Open project with =projab=
+Use =projab-open-project= to open a project that is selected by =project.el= 's project selector. We don't add any advices in default, must use the function to make =projab= to manage project.
+
+** Close project
+Use =projab-close-project= or =tab-bar-close-tab= . I recommend using =tab-bar-close-tab= to keep standard way.
+
 ** Switching between projects
 Use =projab-switch-project= or =tab-bar-switch-to-tab= . I recommend using =tab-bar-switch-to-tab= when you use Marginalia.
 

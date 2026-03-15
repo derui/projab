@@ -25,7 +25,7 @@ This package aims to provide:
   - This is the most difficult thing in such a session management. Other packages will try to manage this, but it seems that is only opinionated, each person has different opinions.
 - Customization of the desktop directory name
   - The =.emacs.desktop= file is not portable between machines.
-  - If you change location the project, it becamos incompatible and cannot be reused.
+  - If you change the project's location, it becamos incompatible and cannot be reused.
 
 
 
@@ -86,7 +86,7 @@ Use =projab-switch-project= or =tab-bar-switch-to-tab= . I recommend using =tab-
     (add-to-list 'consult-buffer-sources 'consult--source-workspace))
 #+end_src
 ** Dashboard integration
-This package does not make any hook/advice for project.el or other package. So if you are using [[https://github.com/emacs-dashboard/dashboard][emacs-dashboard]], will occur problem to open project from dashboard.
+This package does not make any hook/advice for project.el or other packages. Consequently, using [[https://github.com/emacs-dashboard/dashboard][emacs-dashboard]] to open projects will cause problems.
 
 My configuration is here:
 

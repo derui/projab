@@ -360,6 +360,61 @@
         (should (null (projab--restore-project-session root)))
       (delete-directory projab-sessions-directory t))))
 
+;;; read-only buffer exclusion
+
+(ert-deftest projab-test-close-project-excludes-read-only-buffers ()
+  "projab-close-project does not save read-only buffers to the desktop."
+  (let* ((root "/home/user/myproject/")
+         (projab-sessions-directory (make-temp-file "projab-test" t))
+         (buf-rw (get-buffer-create " *projab-test-rw*"))
+         (buf-ro (get-buffer-create " *projab-test-ro*"))
+         (saved-buffers nil))
+    (unwind-protect
+        (progn
+          (with-current-buffer buf-ro
+            (setq buffer-read-only t))
+          (cl-letf (((symbol-function 'projab-project-root)
+                     (lambda () root))
+                    ((symbol-function 'projab-list-buffers)
+                     (lambda () (list buf-rw buf-ro)))
+                    ((symbol-function 'desktop-save)
+                     (lambda (&rest _) (setq saved-buffers (buffer-list))))
+                    ((symbol-function 'tab-bar-close-tab) #'ignore))
+            (projab-close-project))
+          (should (memq buf-rw saved-buffers))
+          (should (not (memq buf-ro saved-buffers))))
+      (with-current-buffer buf-ro (setq buffer-read-only nil))
+      (kill-buffer buf-rw)
+      (kill-buffer buf-ro)
+      (delete-directory projab-sessions-directory t))))
+
+(ert-deftest projab-test-save-all-sessions-excludes-read-only-buffers ()
+  "projab-save-all-sessions does not pass read-only buffers to desktop-save."
+  (let* ((root "/home/user/myproject/")
+         (projab-sessions-directory (make-temp-file "projab-test" t))
+         (buf-rw (get-buffer-create " *projab-test-rw2*"))
+         (buf-ro (get-buffer-create " *projab-test-ro2*"))
+         (saved-buffers nil)
+         (fake-tabs `((tab (name . "proj") (:projab-project-root . ,root))))
+         (tab-bar-tabs-function nil))
+    (unwind-protect
+        (progn
+          (setq tab-bar-tabs-function (lambda () fake-tabs))
+          (with-current-buffer buf-ro
+            (setq buffer-read-only t))
+          (cl-letf (((symbol-function 'tab-bar-select-tab) #'ignore)
+                    ((symbol-function 'projab-list-buffers)
+                     (lambda () (list buf-rw buf-ro)))
+                    ((symbol-function 'desktop-save)
+                     (lambda (&rest _) (setq saved-buffers (buffer-list)))))
+            (projab-save-all-sessions))
+          (should (memq buf-rw saved-buffers))
+          (should (not (memq buf-ro saved-buffers))))
+      (with-current-buffer buf-ro (setq buffer-read-only nil))
+      (kill-buffer buf-rw)
+      (kill-buffer buf-ro)
+      (delete-directory projab-sessions-directory t))))
+
 ;;; projab-switch-project
 
 (ert-deftest projab-test-switch-project-selects-tab ()

@@ -248,9 +248,14 @@ If the current tab has no project, fall back to `switch-to-buffer'."
           (file-attribute-modification-time
            (file-attributes
             (expand-file-name "desktop" session-dir))))
-         (buffers (cl-remove-if
-                   (lambda (buf) (buffer-local-value 'buffer-read-only buf))
-                   (projab-list-buffers))))
+         (buffers
+          (cl-remove-if
+           (lambda (buf)
+             (let ((buf-name (buffer-name buf)))
+               (or (buffer-local-value 'buffer-read-only buf)
+                   (null (buffer-file-name buf))
+                   (not (file-exists-p (buffer-file-name buf))))))
+           (projab-list-buffers))))
     ;; Override `buffer-list' temporary. This will be affect internally change.
     (cl-letf (((symbol-function 'buffer-list)
                (lambda (&optional _frame) buffers)))

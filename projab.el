@@ -264,9 +264,8 @@ If the current tab has no project, fall back to `switch-to-buffer'."
 (defun projab--restore-project-session (project-root)
   "Restore the session for PROJECT-ROOT from its desktop file.
 Returns t if a session was restored, nil otherwise."
-  (let* ((session-dir (projab--session-dir project-root))
-         (desktop-file (expand-file-name "desktop" session-dir)))
-    (when (file-exists-p desktop-file)
+  (let* ((session-dir (projab--session-dir project-root)))
+    (when (file-exists-p (expand-file-name "desktop" session-dir))
       (let ((desktop-dirname session-dir)
             (desktop-base-file-name "desktop")
             (desktop-base-lock-name "desktop.lock")
@@ -282,10 +281,8 @@ Returns t if a session was restored, nil otherwise."
   (interactive)
   (save-excursion
     (dolist (pt (projab--all-project-tabs))
-      (let ((root (car pt))
-            (index (cdr pt)))
-        (tab-bar-select-tab (1+ index))
-        (projab--save-project-session root)))))
+      (tab-bar-select-tab (1+ (cdr pt)))
+      (projab--save-project-session (car pt)))))
 
 ;;; Switch project
 
@@ -313,22 +310,18 @@ and restore the saved session if one exists."
     (let ((project-switch-commands 'projab--store-new-root))
       (call-interactively #'project-switch-project)
       (setq project-root projab--switch-project-root)))
-  (print project-root)
 
   (let ((existing-index (projab--find-tab-by-project project-root)))
     (if existing-index
         (tab-bar-select-tab (1+ existing-index))
-      (let ((project-name
-             (file-name-nondirectory
-              (directory-file-name project-root))))
-        (tab-bar-new-tab)
-        (projab--set-tab-parameter :projab-project-root project-root)
-        (tab-bar-rename-tab project-name)
-        (delete-other-windows)
-        (when (or (not projab-auto-restore-session)
-                  (not
-                   (projab--restore-project-session project-root)))
-          (dired project-root))))))
+      (tab-bar-new-tab)
+      (projab--set-tab-parameter :projab-project-root project-root)
+      (tab-bar-rename-tab
+       (file-name-nondirectory (directory-file-name project-root)))
+      (delete-other-windows)
+      (when (or (not projab-auto-restore-session)
+                (not (projab--restore-project-session project-root)))
+        (dired project-root)))))
 
 ;;; Switch among open project tabs
 
@@ -338,23 +331,22 @@ and restore the saved session if one exists."
 Presents a list of open project tabs for selection and switches
  to the chosen one."
   (interactive)
-  (let ((project-tabs (projab--all-project-tabs)))
-    (if (null project-tabs)
-        (message "No open project tabs.")
-      (let* ((choices
-              (mapcar
-               (lambda (pt)
-                 (cons
-                  (file-name-nondirectory
-                   (directory-file-name (car pt)))
-                  (cdr pt)))
-               project-tabs))
-             (names (mapcar #'car choices))
-             (choice
-              (completing-read "Switch to project: " names nil t))
+  (if-let* ((project-tabs (projab--all-project-tabs)))
+    (let* ((choices
+            (mapcar
+             (lambda (pt)
+               (cons
+                (file-name-nondirectory
+                 (directory-file-name (car pt)))
+                (cdr pt)))
+             project-tabs))
+           (names (mapcar #'car choices))
+           (choice
+            (completing-read "Switch to project: " names nil t))
 
-             (index (cdr (assoc choice choices))))
-        (tab-bar-select-tab (1+ index))))))
+           (index (cdr (assoc choice choices))))
+      (tab-bar-select-tab (1+ index)))
+    (message "No open project tabs.")))
 
 ;;; Close project
 
@@ -364,11 +356,10 @@ Presents a list of open project tabs for selection and switches
 Save the session before closing unless NO-SAVE is non-nil.
 With prefix argument, skip saving."
   (interactive "P")
-  (let ((root (projab-project-root)))
-    (when root
-      (unless no-save
-        (projab--save-project-session root))
-      (tab-bar-close-tab))))
+  (when-let* ((root (projab-project-root)))
+    (unless no-save
+      (projab--save-project-session root))
+    (tab-bar-close-tab)))
 
 ;;; Extra-buffer hooks
 
@@ -376,33 +367,30 @@ With prefix argument, skip saving."
   "Track buffers opened outside the current tab's project as extra buffers.
 When a file is visited in a project tab and its path does not fall under
 the project root, add the buffer to the tab's `:projab-extra-buffers' list."
-  (let ((root (projab-project-root)))
-    (when root
-      (let* ((expanded-root (expand-file-name root))
-             (file (buffer-file-name))
-             (in-project
-              (or (and file
-                       (string-prefix-p
-                        expanded-root (expand-file-name file)))
-                  (string-prefix-p
-                   expanded-root
-                   (expand-file-name default-directory)))))
-        (unless in-project
-          (let ((extra (projab--tab-parameter :projab-extra-buffers)))
-            (unless (memq (current-buffer) extra)
-              (projab--set-tab-parameter
-               :projab-extra-buffers
-               (cons (current-buffer) extra)))))))))
+  (when-let* ((root (projab-project-root)))
+    (let* ((expanded-root (expand-file-name root))
+           (file (buffer-file-name))
+           (in-project
+            (or (and file
+                     (string-prefix-p
+                      expanded-root (expand-file-name file)))
+                (string-prefix-p
+                 expanded-root
+                 (expand-file-name default-directory)))))
+      (unless in-project
+        (let ((extra (projab--tab-parameter :projab-extra-buffers)))
+          (unless (memq (current-buffer) extra)
+            (projab--set-tab-parameter
+             :projab-extra-buffers
+             (cons (current-buffer) extra))))))))
 
 (defun projab--kill-buffer-hook ()
   "Remove the buffer being killed from all tabs' `:projab-extra-buffers'."
-  (let ((buf (current-buffer))
-        (tabs (funcall tab-bar-tabs-function)))
-    (dolist (tab tabs)
-      (let* ((extra (map-elt (cdr tab) :projab-extra-buffers))
-             (pruned (delq buf extra)))
-        (when (and extra (not (eq pruned extra)))
-          (map-put! (cdr tab) :projab-extra-buffers pruned))))))
+  (dolist (tab (funcall tab-bar-tabs-function))
+    (let* ((extra (map-elt (cdr tab) :projab-extra-buffers))
+           (pruned (delq (current-buffer) extra)))
+      (when (and extra (not (eq pruned extra)))
+        (map-put! (cdr tab) :projab-extra-buffers pruned)))))
 
 ;;; Timer-based auto-save
 

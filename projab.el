@@ -256,10 +256,19 @@ If the current tab has no project, fall back to `switch-to-buffer'."
                    (null file-name)
                    (not (file-exists-p file-name)))))
            (projab-list-buffers))))
-    ;; Override `buffer-list' temporary. This will be affect internally change.
-    (cl-letf (((symbol-function 'buffer-list)
-               (lambda (&optional _frame) buffers)))
-      (desktop-save session-dir t t))))
+    ;; Override `buffer-list' so desktop-save only sees project buffers.
+    ;; Also wrap `desktop-buffer-info' with `save-current-buffer' because
+    ;; the upstream implementation uses bare `set-buffer' which moves the
+    ;; current buffer away from the temp buffer that `desktop-save' writes
+    ;; into, corrupting a project buffer with desktop data instead.
+    (let ((orig-buf-info (symbol-function 'desktop-buffer-info)))
+      (cl-letf (((symbol-function 'buffer-list)
+                 (lambda (&optional _frame) buffers))
+                ((symbol-function 'desktop-buffer-info)
+                 (lambda (buffer)
+                   (save-current-buffer
+                     (funcall orig-buf-info buffer)))))
+        (desktop-save session-dir t t)))))
 
 (defun projab--restore-project-session (project-root)
   "Restore the session for PROJECT-ROOT from its desktop file.

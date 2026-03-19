@@ -28,7 +28,6 @@ This package aims to provide:
   - If you change the project's location, it becamos incompatible and cannot be reused.
 
 
-
 * Install
 This package does not join ELPA/MELPA. So you can:
 

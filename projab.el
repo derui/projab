@@ -251,10 +251,10 @@ If the current tab has no project, fall back to `switch-to-buffer'."
          (buffers
           (cl-remove-if
            (lambda (buf)
-             (let ((buf-name (buffer-name buf)))
+             (let ((file-name (buffer-file-name buf)))
                (or (buffer-local-value 'buffer-read-only buf)
-                   (null buf-name)
-                   (not (file-exists-p buf-name)))))
+                   (null file-name)
+                   (not (file-exists-p file-name)))))
            (projab-list-buffers))))
     ;; Override `buffer-list' temporary. This will be affect internally change.
     (cl-letf (((symbol-function 'buffer-list)

@@ -89,7 +89,8 @@
         (cl-letf (((symbol-function 'projab-project-root)
                    (lambda () root))
                   ((symbol-function 'project-current)
-                   (lambda (&optional _maybe-prompt _dir) fake-project))
+                   (lambda (&optional _maybe-prompt _dir)
+                     fake-project))
                   ((symbol-function 'project-buffers)
                    (lambda (_proj) (list buf-in))))
           (let ((result (projab-list-buffers)))
@@ -110,7 +111,8 @@
         (cl-letf (((symbol-function 'projab-project-root)
                    (lambda () root))
                   ((symbol-function 'project-current)
-                   (lambda (&optional _maybe-prompt _dir) fake-project))
+                   (lambda (&optional _maybe-prompt _dir)
+                     fake-project))
                   ((symbol-function 'project-buffers)
                    (lambda (_proj) (list buf-in)))
                   ((symbol-function 'projab--tab-parameter)
@@ -271,7 +273,8 @@
 
 ;;; projab-local-buffer-p
 
-(ert-deftest projab-test-local-buffer-p-returns-t-for-project-buffer ()
+(ert-deftest projab-test-local-buffer-p-returns-t-for-project-buffer
+    ()
   "projab-local-buffer-p returns t for both a buffer object and its name string."
   (let* ((root "/home/user/myproject/")
          (buf (get-buffer-create " *projab-test-local-in*"))
@@ -280,16 +283,19 @@
         (cl-letf (((symbol-function 'projab-project-root)
                    (lambda () root))
                   ((symbol-function 'project-current)
-                   (lambda (&optional _maybe-prompt _dir) fake-project))
+                   (lambda (&optional _maybe-prompt _dir)
+                     fake-project))
                   ((symbol-function 'project-buffers)
                    (lambda (_proj) (list buf))))
           (dolist (arg (list buf (buffer-name buf)))
             (should (eq t (projab-local-buffer-p arg)))))
       (kill-buffer buf))))
 
-(ert-deftest projab-test-local-buffer-p-returns-nil-for-foreign-buffer ()
+(ert-deftest projab-test-local-buffer-p-returns-nil-for-foreign-buffer
+    ()
   "projab-local-buffer-p returns nil for a buffer outside the project root."
-  (let* ((root (file-name-as-directory (make-temp-file "projab-proj" t)))
+  (let* ((root
+          (file-name-as-directory (make-temp-file "projab-proj" t)))
          (buf (get-buffer-create " *projab-test-local-out*")))
     (unwind-protect
         (progn
@@ -310,13 +316,17 @@
           (should (null (projab-local-buffer-p buf))))
       (kill-buffer buf))))
 
-(ert-deftest projab-test-local-buffer-p-returns-nil-for-unknown-name ()
+(ert-deftest projab-test-local-buffer-p-returns-nil-for-unknown-name
+    ()
   "projab-local-buffer-p returns nil for a buffer name that does not exist."
-  (let* ((root (file-name-as-directory (make-temp-file "projab-proj" t))))
+  (let* ((root
+          (file-name-as-directory (make-temp-file "projab-proj" t))))
     (unwind-protect
         (cl-letf (((symbol-function 'projab-project-root)
                    (lambda () root)))
-          (should (null (projab-local-buffer-p " *projab-nonexistent-xyz*"))))
+          (should
+           (null
+            (projab-local-buffer-p " *projab-nonexistent-xyz*"))))
       (delete-directory root t))))
 
 ;;; projab--save-project-session
@@ -381,19 +391,24 @@
                     ((symbol-function 'projab-list-buffers)
                      (lambda () (list buf-rw buf-ro)))
                     ((symbol-function 'desktop-save)
-                     (lambda (&rest _) (setq saved-buffers (buffer-list))))
+                     (lambda (&rest _)
+                       (setq saved-buffers (buffer-list))))
                     ((symbol-function 'tab-bar-close-tab) #'ignore))
             (projab-close-project))
           (should (memq buf-rw saved-buffers))
           (should (not (memq buf-ro saved-buffers))))
-      (with-current-buffer buf-ro (setq buffer-read-only nil))
-      (with-current-buffer buf-rw (set-visited-file-name nil t))
+      (with-current-buffer buf-ro
+        (setq buffer-read-only nil))
+      (with-current-buffer buf-rw
+        (set-visited-file-name nil t))
       (kill-buffer buf-rw)
       (kill-buffer buf-ro)
-      (when (file-exists-p tmp-file) (delete-file tmp-file))
+      (when (file-exists-p tmp-file)
+        (delete-file tmp-file))
       (delete-directory projab-sessions-directory t))))
 
-(ert-deftest projab-test-save-all-sessions-excludes-read-only-buffers ()
+(ert-deftest projab-test-save-all-sessions-excludes-read-only-buffers
+    ()
   "projab-save-all-sessions does not pass read-only buffers to desktop-save."
   (let* ((root "/home/user/myproject/")
          (projab-sessions-directory (make-temp-file "projab-test" t))
@@ -401,7 +416,8 @@
          (buf-ro (get-buffer-create " *projab-test-ro2*"))
          (saved-buffers nil)
          (tmp-file (make-temp-file "projab-rw2"))
-         (fake-tabs `((tab (name . "proj") (:projab-project-root . ,root))))
+         (fake-tabs
+          `((tab (name . "proj") (:projab-project-root . ,root))))
          (tab-bar-tabs-function nil))
     (unwind-protect
         (progn
@@ -414,15 +430,19 @@
                     ((symbol-function 'projab-list-buffers)
                      (lambda () (list buf-rw buf-ro)))
                     ((symbol-function 'desktop-save)
-                     (lambda (&rest _) (setq saved-buffers (buffer-list)))))
+                     (lambda (&rest _)
+                       (setq saved-buffers (buffer-list)))))
             (projab-save-all-sessions))
           (should (memq buf-rw saved-buffers))
           (should (not (memq buf-ro saved-buffers))))
-      (with-current-buffer buf-ro (setq buffer-read-only nil))
-      (with-current-buffer buf-rw (set-visited-file-name nil t))
+      (with-current-buffer buf-ro
+        (setq buffer-read-only nil))
+      (with-current-buffer buf-rw
+        (set-visited-file-name nil t))
       (kill-buffer buf-rw)
       (kill-buffer buf-ro)
-      (when (file-exists-p tmp-file) (delete-file tmp-file))
+      (when (file-exists-p tmp-file)
+        (delete-file tmp-file))
       (delete-directory projab-sessions-directory t))))
 
 ;;; no-file and unsaved-file buffer exclusion
@@ -445,15 +465,18 @@
                     ((symbol-function 'projab-list-buffers)
                      (lambda () (list buf-file buf-nofile)))
                     ((symbol-function 'desktop-save)
-                     (lambda (&rest _) (setq saved-buffers (buffer-list))))
+                     (lambda (&rest _)
+                       (setq saved-buffers (buffer-list))))
                     ((symbol-function 'tab-bar-close-tab) #'ignore))
             (projab-close-project))
           (should (memq buf-file saved-buffers))
           (should (not (memq buf-nofile saved-buffers))))
-      (with-current-buffer buf-file (set-visited-file-name nil t))
+      (with-current-buffer buf-file
+        (set-visited-file-name nil t))
       (kill-buffer buf-file)
       (kill-buffer buf-nofile)
-      (when (file-exists-p tmp-file) (delete-file tmp-file))
+      (when (file-exists-p tmp-file)
+        (delete-file tmp-file))
       (delete-directory projab-sessions-directory t))))
 
 (ert-deftest projab-test-save-session-excludes-unsaved-file-buffers ()
@@ -461,7 +484,8 @@
   (let* ((root "/home/user/myproject/")
          (projab-sessions-directory (make-temp-file "projab-test" t))
          (buf-saved (get-buffer-create " *projab-test-saved-file*"))
-         (buf-unsaved (get-buffer-create " *projab-test-unsaved-file*"))
+         (buf-unsaved
+          (get-buffer-create " *projab-test-unsaved-file*"))
          (saved-buffers nil)
          (tmp-file (make-temp-file "projab-buf")))
     (unwind-protect
@@ -470,34 +494,41 @@
             (set-visited-file-name tmp-file t))
           (with-current-buffer buf-unsaved
             ;; Point to a path that does not exist
-            (set-visited-file-name "/nonexistent/path/projab-test-ghost.txt" t))
+            (set-visited-file-name
+             "/nonexistent/path/projab-test-ghost.txt"
+             t))
           (cl-letf (((symbol-function 'projab-project-root)
                      (lambda () root))
                     ((symbol-function 'projab-list-buffers)
                      (lambda () (list buf-saved buf-unsaved)))
                     ((symbol-function 'desktop-save)
-                     (lambda (&rest _) (setq saved-buffers (buffer-list))))
+                     (lambda (&rest _)
+                       (setq saved-buffers (buffer-list))))
                     ((symbol-function 'tab-bar-close-tab) #'ignore))
             (projab-close-project))
           (should (memq buf-saved saved-buffers))
           (should (not (memq buf-unsaved saved-buffers))))
-      (with-current-buffer buf-saved (set-visited-file-name nil t))
-      (with-current-buffer buf-unsaved (set-visited-file-name nil t))
+      (with-current-buffer buf-saved
+        (set-visited-file-name nil t))
+      (with-current-buffer buf-unsaved
+        (set-visited-file-name nil t))
       (kill-buffer buf-saved)
       (kill-buffer buf-unsaved)
-      (when (file-exists-p tmp-file) (delete-file tmp-file))
+      (when (file-exists-p tmp-file)
+        (delete-file tmp-file))
       (delete-directory projab-sessions-directory t))))
 
 ;;; projab-switch-project
 
 (ert-deftest projab-test-switch-project-selects-tab ()
   "projab-switch-project switches to the tab corresponding to the chosen project."
-  (let ((fake-tabs
-         '((current-tab (name . "scratch"))
-           (tab (name . "proj-a") (:projab-project-root . "/projects/alpha/"))
-           (tab (name . "proj-b") (:projab-project-root . "/projects/beta/"))))
-        (tab-bar-tabs-function nil)
-        (selected-tab nil))
+  (let
+      ((fake-tabs
+        '((current-tab (name . "scratch"))
+          (tab (name . "proj-a") (:projab-project-root . "/projects/alpha/"))
+          (tab (name . "proj-b") (:projab-project-root . "/projects/beta/"))))
+       (tab-bar-tabs-function nil)
+       (selected-tab nil))
     (setq tab-bar-tabs-function (lambda () fake-tabs))
     (cl-letf (((symbol-function 'completing-read)
                (lambda (_prompt _choices &rest _) "beta"))
@@ -509,8 +540,7 @@
 
 (ert-deftest projab-test-switch-project-no-tabs-shows-message ()
   "projab-switch-project shows a message when there are no open project tabs."
-  (let ((fake-tabs
-         '((current-tab (name . "scratch"))))
+  (let ((fake-tabs '((current-tab (name . "scratch"))))
         (tab-bar-tabs-function nil)
         (msg nil))
     (setq tab-bar-tabs-function (lambda () fake-tabs))
@@ -521,11 +551,12 @@
 
 (ert-deftest projab-test-switch-project-offers-only-project-tabs ()
   "projab-switch-project only presents project tabs as candidates."
-  (let ((fake-tabs
-         '((current-tab (name . "scratch"))
-           (tab (name . "proj-a") (:projab-project-root . "/projects/alpha/"))))
-        (tab-bar-tabs-function nil)
-        (offered nil))
+  (let
+      ((fake-tabs
+        '((current-tab (name . "scratch"))
+          (tab (name . "proj-a") (:projab-project-root . "/projects/alpha/"))))
+       (tab-bar-tabs-function nil)
+       (offered nil))
     (setq tab-bar-tabs-function (lambda () fake-tabs))
     (cl-letf (((symbol-function 'completing-read)
                (lambda (_prompt choices &rest _)
@@ -553,7 +584,9 @@
                          nil)))
                     ((symbol-function 'projab--set-tab-parameter)
                      (lambda (key val)
-                       (setq set-key key set-val val))))
+                       (setq
+                        set-key key
+                        set-val val))))
             (projab-project-add-current-buffer)
             (should (eq set-key :projab-extra-buffers))
             (should (memq buf set-val))))
@@ -603,7 +636,9 @@
                          (list buf))))
                     ((symbol-function 'projab--set-tab-parameter)
                      (lambda (key val)
-                       (setq set-key key set-val val))))
+                       (setq
+                        set-key key
+                        set-val val))))
             (projab-project-remove-current-buffer)
             (should (eq set-key :projab-extra-buffers))
             (should (not (memq buf set-val)))))
@@ -634,7 +669,9 @@
                        (list buf))))
                   ((symbol-function 'projab--set-tab-parameter)
                    (lambda (key val)
-                     (setq set-key key set-val val))))
+                     (setq
+                      set-key key
+                      set-val val))))
           (projab-project-remove-selected-buffer buf)
           (should (eq set-key :projab-extra-buffers))
           (should (not (memq buf set-val))))
@@ -650,7 +687,8 @@
                   ((symbol-function 'projab-list-buffers)
                    (lambda () (list buf)))
                   ((symbol-function 'completing-read)
-                   (lambda (_prompt _choices &rest _) (buffer-name buf)))
+                   (lambda (_prompt _choices &rest _)
+                     (buffer-name buf)))
                   ((symbol-function 'projab--tab-parameter)
                    (lambda (key &optional _tab)
                      (when (eq key :projab-extra-buffers)
@@ -661,13 +699,15 @@
           (should (not (memq buf set-val))))
       (kill-buffer buf))))
 
-(ert-deftest projab-test-remove-selected-buffer-noop-when-no-project ()
+(ert-deftest projab-test-remove-selected-buffer-noop-when-no-project
+    ()
   "projab-project-remove-selected-buffer does nothing when there is no project."
   (let ((set-called nil))
     (cl-letf (((symbol-function 'projab-project-root) (lambda () nil))
               ((symbol-function 'projab--set-tab-parameter)
                (lambda (&rest _) (setq set-called t))))
-      (projab-project-remove-selected-buffer (get-buffer-create " *projab-dummy*"))
+      (projab-project-remove-selected-buffer
+       (get-buffer-create " *projab-dummy*"))
       (should (null set-called)))))
 
 (provide 'projab-test)

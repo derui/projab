@@ -22,7 +22,7 @@ This package aims to provide:
 
 ** Will not implement
 - Window layout restoration
-  - This is the most difficult thing in such a session management. Other packages will try to manage this, but it seems that is only opinionated, each person has different opinions.
+  - This is one of the most difficult things in session management. Other packages have been trying to manage this many years, but it seems subjective - everyone has differenc preferences
 - Customization of the desktop directory name
   - The =.emacs.desktop= file is not portable between machines.
   - If you change the project's location, it becamos incompatible and cannot be reused.

@@ -313,10 +313,14 @@ Returns t if a session was restored, nil otherwise."
 (defun projab-save-all-sessions ()
   "Save sessions for all open project tabs."
   (interactive)
-  (save-excursion
+  (let* ((all-tabs (funcall tab-bar-tabs-function))
+         (original-index (seq-position all-tabs 'current-tab
+                                       (lambda (tab type) (eq (car tab) type)))))
     (dolist (pt (projab--all-project-tabs))
       (tab-bar-select-tab (1+ (cdr pt)))
-      (projab--save-project-session (car pt)))))
+      (projab--save-project-session (car pt)))
+    (when original-index
+      (tab-bar-select-tab (1+ original-index)))))
 
 ;;; Switch project
 

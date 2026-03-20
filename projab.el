@@ -235,40 +235,63 @@ If the current tab has no project, fall back to `switch-to-buffer'."
 
 ;;; Session save/restore
 
+(defun projab--saveable-buffers ()
+  "Return project buffers eligible for desktop session save.
+Excludes read-only buffers, buffers without a visited file,
+and buffers whose visited file does not exist on disk."
+  (cl-remove-if
+   (lambda (buf)
+     (let ((file-name (buffer-file-name buf)))
+       (or (buffer-local-value 'buffer-read-only buf)
+           (null file-name)
+           (not (file-exists-p file-name)))))
+   (projab-list-buffers)))
+
 (defun projab--save-project-session (project-root)
-  "Save the session for PROJECT-ROOT's tab using desktop.el."
+  "Save the session for PROJECT-ROOT's tab.
+
+Notice, this function writes a desktop.el-compatible file directly, iterating only over
+project buffers with `with-current-buffer' to avoid the upstream
+`set-buffer' side-effect in `desktop-buffer-info'."
   (let* ((session-dir (projab--session-dir project-root))
          (desktop-dirname session-dir)
-         (desktop-base-file-name "desktop")
-         (desktop-base-lock-name "desktop.lock")
-         (desktop-restore-frames nil)
-         (desktop-save t)
-         ;; ignore claim lock forcibly
-         (desktop-file-modtime
-          (file-attribute-modification-time
-           (file-attributes
-            (expand-file-name "desktop" session-dir))))
-         (buffers
-          (cl-remove-if
-           (lambda (buf)
-             (let ((file-name (buffer-file-name buf)))
-               (or (buffer-local-value 'buffer-read-only buf)
-                   (null file-name)
-                   (not (file-exists-p file-name)))))
-           (projab-list-buffers))))
-    ;; Override `buffer-list' so desktop-save only sees project buffers.
-    ;; Also wrap `desktop-buffer-info' with `save-current-buffer' because
-    ;; the upstream implementation uses bare `set-buffer' which moves the
-    ;; current buffer away from the temp buffer that `desktop-save' writes
-    ;; into, corrupting a project buffer with desktop data instead.
-    (let ((orig-buf-info (symbol-function 'desktop-buffer-info)))
-      (cl-letf (((symbol-function 'buffer-list)
-                 (lambda (&optional _frame) buffers))
-                ((symbol-function 'desktop-buffer-info)
-                 (lambda (buffer)
-                   (save-current-buffer
-                     (funcall orig-buf-info buffer)))))
-        (desktop-save session-dir t t)))))
+         (file-version
+          (or desktop-io-file-version desktop-native-file-version))
+         (buffers (projab--saveable-buffers)))
+    (with-temp-buffer
+      (insert
+       ";; -*- mode: emacs-lisp; lexical-binding:t; coding: utf-8-emacs; -*-\n"
+       desktop-header
+       ";; Created "
+       (current-time-string)
+       "\n"
+       ";; Desktop file format version "
+       (format "%d" file-version)
+       "\n"
+       ";; Emacs version "
+       emacs-version
+       "\n"
+       "\n;; Global section:\n"
+       "\n;; Buffer section:\n")
+      (dolist (buf buffers)
+        (let* ((info
+                (with-current-buffer buf
+                  (desktop-buffer-info buf)))
+               (base (pop info)))
+          (when (apply #'desktop-save-buffer-p info)
+            (insert
+             "(desktop-create-buffer " (format "%d" file-version))
+            (when (and base (not (string= base "")))
+              (setcar (nthcdr 1 info) base))
+            (dolist (e info)
+              (insert "\n  " (desktop-value-to-string e)))
+            (insert ")\n\n"))))
+      (let ((coding-system-for-write 'utf-8-emacs))
+        (write-region (point-min)
+                      (point-max)
+                      (expand-file-name "desktop" session-dir)
+                      nil
+                      'nomessage)))))
 
 (defun projab--restore-project-session (project-root)
   "Restore the session for PROJECT-ROOT from its desktop file.

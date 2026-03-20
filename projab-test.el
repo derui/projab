@@ -329,22 +329,96 @@
             (projab-local-buffer-p " *projab-nonexistent-xyz*"))))
       (delete-directory root t))))
 
-;;; projab--save-project-session
+;;; projab--saveable-buffers
 
-(ert-deftest projab-test-save-session-calls-desktop-save ()
-  "projab--save-project-session calls desktop-save with the session directory."
+(ert-deftest projab-test-saveable-buffers-excludes-read-only ()
+  "projab--saveable-buffers excludes read-only buffers."
   (let* ((root "/home/user/myproject/")
-         (projab-sessions-directory (make-temp-file "projab-test" t))
-         (saved-dir nil))
+         (buf-rw (get-buffer-create " *projab-test-rw*"))
+         (buf-ro (get-buffer-create " *projab-test-ro*"))
+         (tmp-file (make-temp-file "projab-rw")))
     (unwind-protect
         (progn
-          (cl-letf (((symbol-function 'desktop-save)
-                     (lambda (dir &rest _) (setq saved-dir dir))))
+          (with-current-buffer buf-rw
+            (set-visited-file-name tmp-file t))
+          (with-current-buffer buf-ro
+            (set-visited-file-name tmp-file t)
+            (setq buffer-read-only t))
+          (cl-letf (((symbol-function 'projab-list-buffers)
+                     (lambda () (list buf-rw buf-ro))))
+            (let ((result (projab--saveable-buffers)))
+              (should (memq buf-rw result))
+              (should (not (memq buf-ro result))))))
+      (with-current-buffer buf-ro
+        (setq buffer-read-only nil))
+      (with-current-buffer buf-rw
+        (set-visited-file-name nil t))
+      (with-current-buffer buf-ro
+        (set-visited-file-name nil t))
+      (kill-buffer buf-rw)
+      (kill-buffer buf-ro)
+      (when (file-exists-p tmp-file)
+        (delete-file tmp-file)))))
+
+(ert-deftest projab-test-saveable-buffers-excludes-no-file ()
+  "projab--saveable-buffers excludes buffers with no visited file."
+  (let* ((buf-file (get-buffer-create " *projab-test-has-file*"))
+         (buf-nofile (get-buffer-create " *projab-test-no-file*"))
+         (tmp-file (make-temp-file "projab-buf")))
+    (unwind-protect
+        (progn
+          (with-current-buffer buf-file
+            (set-visited-file-name tmp-file t))
+          (cl-letf (((symbol-function 'projab-list-buffers)
+                     (lambda () (list buf-file buf-nofile))))
+            (let ((result (projab--saveable-buffers)))
+              (should (memq buf-file result))
+              (should (not (memq buf-nofile result))))))
+      (with-current-buffer buf-file
+        (set-visited-file-name nil t))
+      (kill-buffer buf-file)
+      (kill-buffer buf-nofile)
+      (when (file-exists-p tmp-file)
+        (delete-file tmp-file)))))
+
+(ert-deftest projab-test-saveable-buffers-excludes-nonexistent-file ()
+  "projab--saveable-buffers excludes buffers whose file does not exist."
+  (let* ((buf-saved (get-buffer-create " *projab-test-saved*"))
+         (buf-unsaved (get-buffer-create " *projab-test-unsaved*"))
+         (tmp-file (make-temp-file "projab-buf")))
+    (unwind-protect
+        (progn
+          (with-current-buffer buf-saved
+            (set-visited-file-name tmp-file t))
+          (with-current-buffer buf-unsaved
+            (set-visited-file-name "/nonexistent/projab-ghost.txt" t))
+          (cl-letf (((symbol-function 'projab-list-buffers)
+                     (lambda () (list buf-saved buf-unsaved))))
+            (let ((result (projab--saveable-buffers)))
+              (should (memq buf-saved result))
+              (should (not (memq buf-unsaved result))))))
+      (with-current-buffer buf-saved
+        (set-visited-file-name nil t))
+      (with-current-buffer buf-unsaved
+        (set-visited-file-name nil t))
+      (kill-buffer buf-saved)
+      (kill-buffer buf-unsaved)
+      (when (file-exists-p tmp-file)
+        (delete-file tmp-file)))))
+
+;;; projab--save-project-session
+
+(ert-deftest projab-test-save-session-writes-desktop-file ()
+  "projab--save-project-session writes a desktop file in the session directory."
+  (let* ((root "/home/user/myproject/")
+         (projab-sessions-directory (make-temp-file "projab-test" t)))
+    (unwind-protect
+        (let ((session-dir (projab--session-dir root)))
+          (cl-letf (((symbol-function 'projab-list-buffers)
+                     (lambda () nil)))
             (projab--save-project-session root))
           (should
-           (string-equal
-            saved-dir
-            (expand-file-name (md5 root) projab-sessions-directory))))
+           (file-exists-p (expand-file-name "desktop" session-dir))))
       (delete-directory projab-sessions-directory t))))
 
 ;;; projab--restore-project-session
@@ -370,152 +444,44 @@
         (should (null (projab--restore-project-session root)))
       (delete-directory projab-sessions-directory t))))
 
-;;; read-only buffer exclusion
+;;; projab-close-project saves session
 
-(ert-deftest projab-test-close-project-excludes-read-only-buffers ()
-  "projab-close-project does not save read-only buffers to the desktop."
+(ert-deftest projab-test-close-project-saves-session ()
+  "projab-close-project writes a desktop file before closing."
   (let* ((root "/home/user/myproject/")
-         (projab-sessions-directory (make-temp-file "projab-test" t))
-         (buf-rw (get-buffer-create " *projab-test-rw*"))
-         (buf-ro (get-buffer-create " *projab-test-ro*"))
-         (saved-buffers nil)
-         (tmp-file (make-temp-file "projab-rw")))
+         (projab-sessions-directory (make-temp-file "projab-test" t)))
     (unwind-protect
         (progn
-          (with-current-buffer buf-rw
-            (set-visited-file-name tmp-file t))
-          (with-current-buffer buf-ro
-            (setq buffer-read-only t))
           (cl-letf (((symbol-function 'projab-project-root)
                      (lambda () root))
                     ((symbol-function 'projab-list-buffers)
-                     (lambda () (list buf-rw buf-ro)))
-                    ((symbol-function 'desktop-save)
-                     (lambda (&rest _)
-                       (setq saved-buffers (buffer-list))))
+                     (lambda () nil))
                     ((symbol-function 'tab-bar-close-tab) #'ignore))
             (projab-close-project))
-          (should (memq buf-rw saved-buffers))
-          (should (not (memq buf-ro saved-buffers))))
-      (with-current-buffer buf-ro
-        (setq buffer-read-only nil))
-      (with-current-buffer buf-rw
-        (set-visited-file-name nil t))
-      (kill-buffer buf-rw)
-      (kill-buffer buf-ro)
-      (when (file-exists-p tmp-file)
-        (delete-file tmp-file))
+          (should
+           (file-exists-p
+            (expand-file-name "desktop" (projab--session-dir root)))))
       (delete-directory projab-sessions-directory t))))
 
-(ert-deftest projab-test-save-all-sessions-excludes-read-only-buffers
-    ()
-  "projab-save-all-sessions does not pass read-only buffers to desktop-save."
+;;; projab-save-all-sessions
+
+(ert-deftest projab-test-save-all-sessions-writes-desktop-files ()
+  "projab-save-all-sessions writes desktop files for all project tabs."
   (let* ((root "/home/user/myproject/")
          (projab-sessions-directory (make-temp-file "projab-test" t))
-         (buf-rw (get-buffer-create " *projab-test-rw2*"))
-         (buf-ro (get-buffer-create " *projab-test-ro2*"))
-         (saved-buffers nil)
-         (tmp-file (make-temp-file "projab-rw2"))
          (fake-tabs
           `((tab (name . "proj") (:projab-project-root . ,root))))
          (tab-bar-tabs-function nil))
     (unwind-protect
         (progn
           (setq tab-bar-tabs-function (lambda () fake-tabs))
-          (with-current-buffer buf-rw
-            (set-visited-file-name tmp-file t))
-          (with-current-buffer buf-ro
-            (setq buffer-read-only t))
           (cl-letf (((symbol-function 'tab-bar-select-tab) #'ignore)
                     ((symbol-function 'projab-list-buffers)
-                     (lambda () (list buf-rw buf-ro)))
-                    ((symbol-function 'desktop-save)
-                     (lambda (&rest _)
-                       (setq saved-buffers (buffer-list)))))
+                     (lambda () nil)))
             (projab-save-all-sessions))
-          (should (memq buf-rw saved-buffers))
-          (should (not (memq buf-ro saved-buffers))))
-      (with-current-buffer buf-ro
-        (setq buffer-read-only nil))
-      (with-current-buffer buf-rw
-        (set-visited-file-name nil t))
-      (kill-buffer buf-rw)
-      (kill-buffer buf-ro)
-      (when (file-exists-p tmp-file)
-        (delete-file tmp-file))
-      (delete-directory projab-sessions-directory t))))
-
-;;; no-file and unsaved-file buffer exclusion
-
-(ert-deftest projab-test-save-session-excludes-no-file-buffers ()
-  "projab--save-project-session excludes buffers that have no associated file."
-  (let* ((root "/home/user/myproject/")
-         (projab-sessions-directory (make-temp-file "projab-test" t))
-         (buf-file (get-buffer-create " *projab-test-has-file*"))
-         (buf-nofile (get-buffer-create " *projab-test-no-file*"))
-         (saved-buffers nil)
-         (tmp-file (make-temp-file "projab-buf")))
-    (unwind-protect
-        (progn
-          (with-current-buffer buf-file
-            (set-visited-file-name tmp-file t))
-          ;; buf-nofile intentionally has no file
-          (cl-letf (((symbol-function 'projab-project-root)
-                     (lambda () root))
-                    ((symbol-function 'projab-list-buffers)
-                     (lambda () (list buf-file buf-nofile)))
-                    ((symbol-function 'desktop-save)
-                     (lambda (&rest _)
-                       (setq saved-buffers (buffer-list))))
-                    ((symbol-function 'tab-bar-close-tab) #'ignore))
-            (projab-close-project))
-          (should (memq buf-file saved-buffers))
-          (should (not (memq buf-nofile saved-buffers))))
-      (with-current-buffer buf-file
-        (set-visited-file-name nil t))
-      (kill-buffer buf-file)
-      (kill-buffer buf-nofile)
-      (when (file-exists-p tmp-file)
-        (delete-file tmp-file))
-      (delete-directory projab-sessions-directory t))))
-
-(ert-deftest projab-test-save-session-excludes-unsaved-file-buffers ()
-  "projab--save-project-session excludes buffers whose file does not exist on disk."
-  (let* ((root "/home/user/myproject/")
-         (projab-sessions-directory (make-temp-file "projab-test" t))
-         (buf-saved (get-buffer-create " *projab-test-saved-file*"))
-         (buf-unsaved
-          (get-buffer-create " *projab-test-unsaved-file*"))
-         (saved-buffers nil)
-         (tmp-file (make-temp-file "projab-buf")))
-    (unwind-protect
-        (progn
-          (with-current-buffer buf-saved
-            (set-visited-file-name tmp-file t))
-          (with-current-buffer buf-unsaved
-            ;; Point to a path that does not exist
-            (set-visited-file-name
-             "/nonexistent/path/projab-test-ghost.txt"
-             t))
-          (cl-letf (((symbol-function 'projab-project-root)
-                     (lambda () root))
-                    ((symbol-function 'projab-list-buffers)
-                     (lambda () (list buf-saved buf-unsaved)))
-                    ((symbol-function 'desktop-save)
-                     (lambda (&rest _)
-                       (setq saved-buffers (buffer-list))))
-                    ((symbol-function 'tab-bar-close-tab) #'ignore))
-            (projab-close-project))
-          (should (memq buf-saved saved-buffers))
-          (should (not (memq buf-unsaved saved-buffers))))
-      (with-current-buffer buf-saved
-        (set-visited-file-name nil t))
-      (with-current-buffer buf-unsaved
-        (set-visited-file-name nil t))
-      (kill-buffer buf-saved)
-      (kill-buffer buf-unsaved)
-      (when (file-exists-p tmp-file)
-        (delete-file tmp-file))
+          (should
+           (file-exists-p
+            (expand-file-name "desktop" (projab--session-dir root)))))
       (delete-directory projab-sessions-directory t))))
 
 ;;; projab-switch-project

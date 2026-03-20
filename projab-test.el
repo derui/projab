@@ -72,10 +72,17 @@
 (ert-deftest projab-test-project-root-returns-value ()
   "projab-project-root returns the root stored in the current tab."
   (cl-letf
-      (((symbol-function 'tab-bar--current-tab)
+      (((symbol-function 'projab--current-tab)
         (lambda ()
-          '(current-tab (:projab-project-root . "/myproject/")))))
+           '(current-tab (:projab-project-root . "/myproject/")))))
     (should (equal "/myproject/" (projab-project-root)))))
+
+(ert-deftest projab-test-current-tab-index-returns-current-position ()
+  "projab--current-tab-index returns the zero-based position of the current tab."
+  (let ((tabs '((tab (name . "one"))
+                (current-tab (name . "two"))
+                (tab (name . "three")))))
+    (should (equal 1 (projab--current-tab-index tabs)))))
 
 ;;; projab-list-buffers
 

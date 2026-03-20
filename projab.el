@@ -91,12 +91,27 @@ The directory name is the MD5 hash of `PROJECT-ROOT'."
 
 (defun projab--tab-parameter (key &optional tab)
   "Get parameter `KEY' from `TAB' (defaults to current tab)."
-  (let ((tab (or tab (tab-bar--current-tab))))
+  (let ((tab (or tab (projab--current-tab))))
     (map-elt (cdr tab) key)))
+
+(defun projab--current-tab (&optional tabs)
+  "Return the current tab from `TABS' or the active frame."
+  (seq-find
+   (lambda (tab)
+     (eq (car tab) 'current-tab))
+   (or tabs (funcall tab-bar-tabs-function))))
+
+(defun projab--current-tab-index (&optional tabs)
+  "Return the zero-based index of the current tab from `TABS' or nil."
+  (seq-position
+   (or tabs (funcall tab-bar-tabs-function))
+   'current-tab
+   (lambda (tab marker)
+     (eq (car tab) marker))))
 
 (defun projab--set-tab-parameter (key value)
   "Set parameter `KEY' to `VALUE' on the current tab."
-  (let ((tab (tab-bar--current-tab-find)))
+  (let ((tab (projab--current-tab)))
     (setf (map-elt (cdr tab) key) value)))
 
 (defun projab--find-tab-by-project (project-root)
@@ -313,9 +328,7 @@ Returns t if a session was restored, nil otherwise."
   "Save sessions for all open project tabs."
   (interactive)
   (let* ((all-tabs (funcall tab-bar-tabs-function))
-         (original-index
-          (seq-position all-tabs 'current-tab
-                        (lambda (tab type) (eq (car tab) type)))))
+         (original-index (projab--current-tab-index all-tabs)))
     (dolist (pt (projab--all-project-tabs))
       (tab-bar-select-tab (1+ (cdr pt)))
       (projab--save-project-session (car pt)))

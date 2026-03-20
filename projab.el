@@ -80,8 +80,8 @@ Takes effect when `projab-mode' is toggled or when
 ;;; Internal helpers
 
 (defun projab--session-dir (project-root)
-  "Return the session directory for PROJECT-ROOT, creating it if needed.
-The directory name is the MD5 hash of PROJECT-ROOT."
+  "Return the session directory for `PROJECT-ROOT', creating it if needed.
+The directory name is the MD5 hash of `PROJECT-ROOT'."
   (let ((dir
          (expand-file-name (md5 project-root)
                            projab-sessions-directory)))
@@ -90,17 +90,17 @@ The directory name is the MD5 hash of PROJECT-ROOT."
     dir))
 
 (defun projab--tab-parameter (key &optional tab)
-  "Get parameter KEY from TAB (defaults to current tab)."
+  "Get parameter `KEY' from `TAB' (defaults to current tab)."
   (let ((tab (or tab (tab-bar--current-tab))))
     (map-elt (cdr tab) key)))
 
 (defun projab--set-tab-parameter (key value)
-  "Set parameter KEY to VALUE on the current tab."
+  "Set parameter `KEY' to `VALUE' on the current tab."
   (let ((tab (tab-bar--current-tab-find)))
     (setf (map-elt (cdr tab) key) value)))
 
 (defun projab--find-tab-by-project (project-root)
-  "Find a tab associated with PROJECT-ROOT.
+  "Find a tab associated with `PROJECT-ROOT'.
 Return the tab index or nil."
   (let ((tabs (funcall tab-bar-tabs-function))
         (index 0)
@@ -113,7 +113,7 @@ Return the tab index or nil."
     found))
 
 (defun projab--all-project-tabs ()
-  "Return a list of (project-root . tab-index) for all project tabs."
+  "Return a list of `(project-root . tab-index)' for all project tabs."
   (let ((tabs (funcall tab-bar-tabs-function))
         (index 0)
         result)
@@ -152,14 +152,14 @@ Returns nil if the current tab has no associated project."
 
 ;;;###autoload
 (defun projab-local-buffer-p (buffer-or-name)
-  "Return t if BUFFER-OR-NAME belongs to the current tab's project workspace.
-BUFFER-OR-NAME may be a buffer object or a buffer name string.
+  "Return t if `BUFFER-OR-NAME' belongs to the current tab's project workspace.
+`BUFFER-OR-NAME' may be a buffer object or a buffer name string.
 Returns nil if the current tab has no associated project."
   (when-let* ((buf (get-buffer buffer-or-name)))
     (not (null (memq buf (projab-list-buffers))))))
 
 (defun projab--project-add-buffer (buffer)
-  "Add BUFFER to the current project's extra buffer list."
+  "Add `BUFFER' to the current project's extra buffer list."
   (when-let* ((root (projab-project-root)))
     (let* ((buf (get-buffer buffer))
            (extra (projab--tab-parameter :projab-extra-buffers)))
@@ -193,7 +193,7 @@ When the `BUFFER' is in the project, keep showing it unless removed."
 
 ;;;###autoload
 (defun projab-project-remove-selected-buffer (&optional buffer)
-  "Remove BUFFER from the current project's extra buffer list.
+  "Remove `BUFFER' from the current project's extra buffer list.
 When called interactively, prompt to select a buffer from the project list."
   (interactive)
   (projab--project-remove-buffer
@@ -247,10 +247,10 @@ and buffers whose visited file does not exist on disk."
    (projab-list-buffers)))
 
 (defun projab--save-project-session (project-root)
-  "Save the session for PROJECT-ROOT's tab.
+  "Save the session for `PROJECT-ROOT''s tab.
 
 Notice, this function writes a desktop.el-compatible file directly,
-iterating only over project buffers with `with-current-buffer' to
+iterating only over project buffers with `save-current-buffer' to
 avoid the upstream `set-buffer' side-effect in `desktop-buffer-info'."
   (let* ((session-dir (projab--session-dir project-root))
          (desktop-dirname session-dir)
@@ -297,7 +297,7 @@ avoid the upstream `set-buffer' side-effect in `desktop-buffer-info'."
                       'nomessage)))))
 
 (defun projab--restore-project-session (project-root)
-  "Restore the session for PROJECT-ROOT from its desktop file.
+  "Restore the session for `PROJECT-ROOT' from its desktop file.
 Returns t if a session was restored, nil otherwise."
   (let* ((session-dir (projab--session-dir project-root)))
     (when (file-exists-p (expand-file-name "desktop" session-dir))
@@ -325,7 +325,7 @@ Returns t if a session was restored, nil otherwise."
   "Temporary root while switching root.")
 
 (defun projab--store-new-root ()
-  "Stores new root from `project-current' to `projab--switch-project-root'."
+  "Store the new root from `project-current' in `projab--switch-project-root'."
   (interactive)
   (setq-local projab--switch-project-root
               (project-root (project-current))))
@@ -333,7 +333,7 @@ Returns t if a session was restored, nil otherwise."
 ;;;###autoload
 (defun projab-open-project (&optional project-root)
   "Switch to a project tab, creating one if it doesn't exist.
-If PROJECT-ROOT is given, use it directly.  Otherwise, call
+If `PROJECT-ROOT' is given, use it directly.  Otherwise, call
 `project-switch-project' interactively to select a project.
 If a tab for the selected project already exists, switch to it.
 Otherwise, create a new tab, associate it with the project,
@@ -388,7 +388,7 @@ Presents a list of open project tabs for selection and switches
 ;;;###autoload
 (defun projab-close-project (&optional no-save)
   "Close the current project tab.
-Save the session before closing unless NO-SAVE is non-nil.
+Save the session before closing unless `NO-SAVE' is non-nil.
 With prefix argument, skip saving."
   (interactive "P")
   (when-let* ((root (projab-project-root)))

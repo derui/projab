@@ -94,10 +94,29 @@
                   ((symbol-function 'project-buffers)
                    (lambda (_proj) (list buf-in))))
           (let ((result (projab-list-buffers)))
-            (should (memq buf-in result))
-            (should (not (memq buf-out result)))))
-      (kill-buffer buf-in)
-      (kill-buffer buf-out))))
+             (should (memq buf-in result))
+             (should (not (memq buf-out result)))))
+       (kill-buffer buf-in)
+       (kill-buffer buf-out))))
+
+(ert-deftest projab-test-list-buffers-returns-nil-without-current-project ()
+  "projab-list-buffers returns nil when the tab root has no current project."
+  (let ((root "/home/user/myproject/")
+        (project-current-called-with nil)
+        (project-buffers-called nil))
+    (cl-letf (((symbol-function 'projab-project-root)
+               (lambda () root))
+              ((symbol-function 'project-current)
+               (lambda (&optional maybe-prompt dir)
+                 (setq project-current-called-with (list maybe-prompt dir))
+                 nil))
+              ((symbol-function 'project-buffers)
+               (lambda (_project)
+                 (setq project-buffers-called t)
+                 nil)))
+      (should (null (projab-list-buffers)))
+      (should (equal project-current-called-with (list nil root)))
+      (should (null project-buffers-called)))))
 
 ;;; projab-list-buffers — extra buffers
 

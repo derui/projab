@@ -139,12 +139,11 @@ Return the tab index or nil."
 Includes buffers whose files are under the project root, and extra
 buffers explicitly associated with this tab via `:projab-extra-buffers'.
 Returns nil if the current tab has no associated project."
-  (when-let* ((buffers
-               (and (projab-project-root)
-                    (project-buffers (project-current)))))
+  (when-let* ((root (projab-project-root)))
     (seq-uniq
      (append
-      buffers
+      (and (project-current nil root)
+           (project-buffers (project-current nil root)))
       (seq-filter
        #'buffer-live-p
        (projab--tab-parameter :projab-extra-buffers))))))
@@ -314,8 +313,9 @@ Returns t if a session was restored, nil otherwise."
   "Save sessions for all open project tabs."
   (interactive)
   (let* ((all-tabs (funcall tab-bar-tabs-function))
-         (original-index (seq-position all-tabs 'current-tab
-                                       (lambda (tab type) (eq (car tab) type)))))
+         (original-index
+          (seq-position all-tabs 'current-tab
+                        (lambda (tab type) (eq (car tab) type)))))
     (dolist (pt (projab--all-project-tabs))
       (tab-bar-select-tab (1+ (cdr pt)))
       (projab--save-project-session (car pt)))
@@ -330,8 +330,7 @@ Returns t if a session was restored, nil otherwise."
 (defun projab--store-new-root ()
   "Store the new root from `project-current' in `projab--switch-project-root'."
   (interactive)
-  (setq projab--switch-project-root
-        (project-root (project-current))))
+  (setq projab--switch-project-root (project-root (project-current))))
 
 ;;;###autoload
 (defun projab-open-project (&optional project-root)
@@ -406,7 +405,8 @@ With prefix argument, skip saving."
 When a file is visited in a project tab and its path does not fall under
 the project root, add the buffer to the tab's `:projab-extra-buffers' list."
   (when-let* ((root (projab-project-root)))
-    (let* ((expanded-root (file-name-as-directory (expand-file-name root)))
+    (let* ((expanded-root
+            (file-name-as-directory (expand-file-name root)))
            (file (buffer-file-name))
            (in-project
             (or (and file

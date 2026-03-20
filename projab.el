@@ -241,10 +241,9 @@ and buffers whose visited file does not exist on disk."
   (seq-filter
    (lambda (buf)
      (let ((file-name (buffer-file-name buf)))
-       (not
-        (or (buffer-local-value 'buffer-read-only buf)
-            (null file-name)
-            (not (file-exists-p file-name))))))
+       (and file-name
+            (not (buffer-local-value 'buffer-read-only buf))
+            (file-exists-p file-name))))
    (projab-list-buffers)))
 
 (defun projab--save-project-session (project-root)

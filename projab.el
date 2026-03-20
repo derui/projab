@@ -256,7 +256,9 @@ avoid the upstream `set-buffer' side-effect in `desktop-buffer-info'."
   (let* ((session-dir (projab--session-dir project-root))
          (desktop-dirname session-dir)
          (desktop-base-file-name "desktop")
-         (file-version
+         ;; not save mark-ring
+         (desktop-var-serdes-funs '())
+         (desktop-io-file-version
           (or desktop-io-file-version desktop-native-file-version))
          (buffers (projab--saveable-buffers)))
     (with-temp-buffer
@@ -267,7 +269,7 @@ avoid the upstream `set-buffer' side-effect in `desktop-buffer-info'."
        (current-time-string)
        "\n"
        ";; Desktop file format version "
-       (format "%d" file-version)
+       (format "%d" desktop-io-file-version)
        "\n"
        ";; Emacs version "
        emacs-version
@@ -281,7 +283,8 @@ avoid the upstream `set-buffer' side-effect in `desktop-buffer-info'."
                (base (pop info)))
           (when (apply #'desktop-save-buffer-p info)
             (insert
-             "(desktop-create-buffer " (format "%d" file-version))
+             "(desktop-create-buffer "
+             (format "%d" desktop-io-file-version))
             (when (and base (not (string= base "")))
               (setcar (nthcdr 1 info) base))
             (dolist (e info)

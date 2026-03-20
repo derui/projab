@@ -217,21 +217,20 @@ When called interactively, prompt to select a buffer from the project list."
   "Switch to a buffer belonging to the current tab's project.
 If the current tab has no project, fall back to `switch-to-buffer'."
   (interactive)
-  (let ((bufs (projab-list-buffers)))
-    (if bufs
-        (let* ((choice
-                (completing-read "Project buffer: "
-                                 (lambda (str pred action)
-                                   (if (eq action 'metadata)
-                                       '(metadata (category . buffer))
-                                     (complete-with-action
-                                      action
-                                      (mapcar #'buffer-name bufs)
-                                      str
-                                      pred)))
-                                 nil t)))
-          (switch-to-buffer choice))
-      (call-interactively #'switch-to-buffer))))
+  (if-let* ((bufs (projab-list-buffers)))
+    (let* ((choice
+            (completing-read "Project buffer: "
+                             (lambda (str pred action)
+                               (if (eq action 'metadata)
+                                   '(metadata (category . buffer))
+                                 (complete-with-action
+                                  action
+                                  (mapcar
+                                   #'buffer-name bufs)
+                                  str pred)))
+                             nil t)))
+      (switch-to-buffer choice))
+    (call-interactively #'switch-to-buffer)))
 
 ;;; Session save/restore
 
@@ -343,17 +342,17 @@ and restore the saved session if one exists."
       (call-interactively #'project-switch-project)
       (setq project-root projab--switch-project-root)))
 
-  (let ((existing-index (projab--find-tab-by-project project-root)))
-    (if existing-index
-        (tab-bar-select-tab (1+ existing-index))
-      (tab-bar-new-tab)
-      (projab--set-tab-parameter :projab-project-root project-root)
-      (tab-bar-rename-tab
-       (file-name-nondirectory (directory-file-name project-root)))
-      (delete-other-windows)
-      (when (or (not projab-auto-restore-session)
-                (not (projab--restore-project-session project-root)))
-        (dired project-root)))))
+  (if-let* ((existing-index
+             (projab--find-tab-by-project project-root)))
+    (tab-bar-select-tab (1+ existing-index))
+    (tab-bar-new-tab)
+    (projab--set-tab-parameter :projab-project-root project-root)
+    (tab-bar-rename-tab
+     (file-name-nondirectory (directory-file-name project-root)))
+    (delete-other-windows)
+    (when (or (not projab-auto-restore-session)
+              (not (projab--restore-project-session project-root)))
+      (dired project-root))))
 
 ;;; Switch among open project tabs
 

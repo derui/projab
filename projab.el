@@ -277,7 +277,7 @@ avoid the upstream `set-buffer' side-effect in `desktop-buffer-info'."
        "\n;; Buffer section:\n")
       (dolist (buf buffers)
         (let* ((info
-                (with-current-buffer (current-buffer)
+                (save-current-buffer
                   (desktop-buffer-info buf)))
                (base (pop info)))
           (when (apply #'desktop-save-buffer-p info)

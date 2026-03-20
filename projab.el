@@ -238,12 +238,13 @@ If the current tab has no project, fall back to `switch-to-buffer'."
   "Return project buffers eligible for desktop session save.
 Excludes read-only buffers, buffers without a visited file,
 and buffers whose visited file does not exist on disk."
-  (cl-remove-if
+  (seq-filter
    (lambda (buf)
      (let ((file-name (buffer-file-name buf)))
-       (or (buffer-local-value 'buffer-read-only buf)
-           (null file-name)
-           (not (file-exists-p file-name)))))
+       (not
+        (or (buffer-local-value 'buffer-read-only buf)
+            (null file-name)
+            (not (file-exists-p file-name))))))
    (projab-list-buffers)))
 
 (defun projab--save-project-session (project-root)
@@ -254,6 +255,7 @@ iterating only over project buffers with `with-current-buffer' to
 avoid the upstream `set-buffer' side-effect in `desktop-buffer-info'."
   (let* ((session-dir (projab--session-dir project-root))
          (desktop-dirname session-dir)
+         (desktop-base-file-name "desktop")
          (file-version
           (or desktop-io-file-version desktop-native-file-version))
          (buffers (projab--saveable-buffers)))
@@ -274,7 +276,7 @@ avoid the upstream `set-buffer' side-effect in `desktop-buffer-info'."
        "\n;; Buffer section:\n")
       (dolist (buf buffers)
         (let* ((info
-                (with-current-buffer buf
+                (with-current-buffer (current-buffer)
                   (desktop-buffer-info buf)))
                (base (pop info)))
           (when (apply #'desktop-save-buffer-p info)

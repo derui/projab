@@ -250,9 +250,9 @@ and buffers whose visited file does not exist on disk."
 (defun projab--save-project-session (project-root)
   "Save the session for PROJECT-ROOT's tab.
 
-Notice, this function writes a desktop.el-compatible file directly, iterating only over
-project buffers with `with-current-buffer' to avoid the upstream
-`set-buffer' side-effect in `desktop-buffer-info'."
+Notice, this function writes a desktop.el-compatible file directly,
+iterating only over project buffers with `with-current-buffer' to
+avoid the upstream `set-buffer' side-effect in `desktop-buffer-info'."
   (let* ((session-dir (projab--session-dir project-root))
          (desktop-dirname session-dir)
          (file-version

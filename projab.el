@@ -37,7 +37,7 @@
 (require 'tab-bar)
 (require 'project)
 (require 'desktop)
-(with-eval-after-load (require 'cl-lib))
+(require 'seq)
 
 ;;; Customization
 
@@ -143,10 +143,10 @@ Returns nil if the current tab has no associated project."
                (and (project-current)
                     (projab-project-root)
                     (project-buffers (project-current)))))
-    (cl-remove-duplicates
+    (seq-uniq
      (append
       buffers
-      (cl-remove-if-not
+      (seq-filter
        #'buffer-live-p
        (projab--tab-parameter :projab-extra-buffers))))))
 

@@ -140,8 +140,7 @@ Includes buffers whose files are under the project root, and extra
 buffers explicitly associated with this tab via `:projab-extra-buffers'.
 Returns nil if the current tab has no associated project."
   (when-let* ((buffers
-               (and (project-current)
-                    (projab-project-root)
+               (and (projab-project-root)
                     (project-buffers (project-current)))))
     (seq-uniq
      (append

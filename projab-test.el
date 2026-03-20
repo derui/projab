@@ -203,9 +203,39 @@
                     ((symbol-function 'projab--set-tab-parameter)
                      (lambda (&rest _) (setq set-called t))))
             (with-current-buffer buf
+             (projab--find-file-hook))
+           (should (null set-called))))
+       (kill-buffer buf)
+       (delete-directory root t))))
+
+(ert-deftest projab-test-find-file-hook-rejects-sibling-directory ()
+  "find-file hook treats sibling directories as outside the project."
+  (let* ((root (file-name-as-directory (make-temp-file "projab-proj" t)))
+         (sibling (concat (directory-file-name root) "-backup/"))
+         (buf (get-buffer-create " *projab-test-sibling*"))
+         (set-key nil)
+         (set-val nil))
+    (unwind-protect
+        (progn
+          (make-directory sibling t)
+          (with-current-buffer buf
+            (setq default-directory sibling))
+          (cl-letf (((symbol-function 'projab-project-root)
+                     (lambda () root))
+                    ((symbol-function 'projab--tab-parameter)
+                     (lambda (key &optional _tab)
+                       (when (eq key :projab-extra-buffers)
+                         nil)))
+                    ((symbol-function 'projab--set-tab-parameter)
+                     (lambda (key val)
+                       (setq set-key key
+                             set-val val))))
+            (with-current-buffer buf
               (projab--find-file-hook))
-            (should (null set-called))))
+            (should (eq set-key :projab-extra-buffers))
+            (should (memq buf set-val))))
       (kill-buffer buf)
+      (delete-directory sibling t)
       (delete-directory root t))))
 
 (ert-deftest projab-test-find-file-hook-no-duplicate ()

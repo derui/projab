@@ -97,17 +97,13 @@ The directory name is the MD5 hash of `PROJECT-ROOT'."
 (defun projab--current-tab (&optional tabs)
   "Return the current tab from `TABS' or the active frame."
   (seq-find
-   (lambda (tab)
-     (eq (car tab) 'current-tab))
+   (lambda (tab) (eq (car tab) 'current-tab))
    (or tabs (funcall tab-bar-tabs-function))))
 
 (defun projab--current-tab-index (&optional tabs)
   "Return the zero-based index of the current tab from `TABS' or nil."
-  (seq-position
-   (or tabs (funcall tab-bar-tabs-function))
-   'current-tab
-   (lambda (tab marker)
-     (eq (car tab) marker))))
+  (seq-position (or tabs (funcall tab-bar-tabs-function)) 'current-tab
+                (lambda (tab marker) (eq (car tab) marker))))
 
 (defun projab--set-tab-parameter (key value)
   "Set parameter `KEY' to `VALUE' on the current tab."
@@ -231,18 +227,18 @@ When called interactively, prompt to select a buffer from the project list."
 If the current tab has no project, fall back to `switch-to-buffer'."
   (interactive)
   (if-let* ((bufs (projab-list-buffers)))
-    (let* ((choice
-            (completing-read "Project buffer: "
-                             (lambda (str pred action)
-                               (if (eq action 'metadata)
-                                   '(metadata (category . buffer))
-                                 (complete-with-action
-                                  action
-                                  (mapcar
-                                   #'buffer-name bufs)
-                                  str pred)))
-                             nil t)))
-      (switch-to-buffer choice))
+      (let* ((choice
+              (completing-read "Project buffer: "
+                               (lambda (str pred action)
+                                 (if (eq action 'metadata)
+                                     '(metadata (category . buffer))
+                                   (complete-with-action
+                                    action
+                                    (mapcar #'buffer-name bufs)
+                                    str
+                                    pred)))
+                               nil t)))
+        (switch-to-buffer choice))
     (call-interactively #'switch-to-buffer)))
 
 ;;; Session save/restore
@@ -346,9 +342,9 @@ Returns t if a session was restored, nil otherwise."
   (setq projab--switch-project-root (project-root (project-current))))
 
 ;;;###autoload
-(defun projab-open-project (&optional project-root)
+(defun projab-open-project (&optional root)
   "Switch to a project tab, creating one if it doesn't exist.
-If `PROJECT-ROOT' is given, use it directly.  Otherwise, call
+If `ROOT' is given, use it directly.  Otherwise, call
 `project-switch-project' interactively to select a project.
 If a tab for the selected project already exists, switch to it.
 Otherwise, create a new tab, associate it with the project,
@@ -356,22 +352,24 @@ and restore the saved session if one exists."
   (interactive)
 
   ;; Get project root
-  (unless project-root
-    (let ((project-switch-commands 'projab--store-new-root))
-      (call-interactively #'project-switch-project)
-      (setq project-root projab--switch-project-root)))
+  (unless root
+    (let* ((dir (project-prompt-project-dir))
+           (proj (project-current nil dir)))
+      (setq root
+            (if proj
+                (project-root proj)
+              dir))))
 
-  (if-let* ((existing-index
-             (projab--find-tab-by-project project-root)))
-    (tab-bar-select-tab (1+ existing-index))
+  (if-let* ((existing-index (projab--find-tab-by-project root)))
+      (tab-bar-select-tab (1+ existing-index))
     (tab-bar-new-tab)
-    (projab--set-tab-parameter :projab-project-root project-root)
+    (projab--set-tab-parameter :projab-project-root root)
     (tab-bar-rename-tab
-     (file-name-nondirectory (directory-file-name project-root)))
+     (file-name-nondirectory (directory-file-name root)))
     (delete-other-windows)
-    (when (or (not projab-auto-restore-session)
-              (not (projab--restore-project-session project-root)))
-      (dired project-root))))
+    (unless (and projab-auto-restore-session
+                 (projab--restore-project-session root))
+      (dired root))))
 
 ;;; Switch among open project tabs
 
@@ -382,20 +380,20 @@ Presents a list of open project tabs for selection and switches
  to the chosen one."
   (interactive)
   (if-let* ((project-tabs (projab--all-project-tabs)))
-    (let* ((choices
-            (mapcar
-             (lambda (pt)
-               (cons
-                (file-name-nondirectory
-                 (directory-file-name (car pt)))
-                (cdr pt)))
-             project-tabs))
-           (names (mapcar #'car choices))
-           (choice
-            (completing-read "Switch to project: " names nil t))
+      (let* ((choices
+              (mapcar
+               (lambda (pt)
+                 (cons
+                  (file-name-nondirectory
+                   (directory-file-name (car pt)))
+                  (cdr pt)))
+               project-tabs))
+             (names (mapcar #'car choices))
+             (choice
+              (completing-read "Switch to project: " names nil t))
 
-           (index (cdr (assoc choice choices))))
-      (tab-bar-select-tab (1+ index)))
+             (index (cdr (assoc choice choices))))
+        (tab-bar-select-tab (1+ index)))
     (message "No open project tabs.")))
 
 ;;; Close project
